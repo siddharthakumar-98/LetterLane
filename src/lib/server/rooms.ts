@@ -1,0 +1,167 @@
+import 'server-only';
+import { randomInt, randomUUID } from 'node:crypto';
+import { transaction, databaseTime, type DB } from './db';
+import { ALLOWED_WORDS, pickAnswer } from './words';
+import { advance, applyAction, projectRoom } from '../game/rules';
+import { GameError, type Action, type Mode, type Room } from '../game/types';
+const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+async function rateLimit(db: DB, key: string, max: number, seconds: number) {
+  const [row] = await db.query<{ hits: number }>(
+    `insert into private.rate_limits(key,window_start,hits) values($1,clock_timestamp(),1)
+  on conflict(key) do update set hits=case when private.rate_limits.window_start < clock_timestamp()-($2 * interval '1 second') then 1 else private.rate_limits.hits+1 end,
+  window_start=case when private.rate_limits.window_start < clock_timestamp()-($2 * interval '1 second') then clock_timestamp() else private.rate_limits.window_start end returning hits`,
+    [key, seconds],
+  );
+  if (row.hits > max)
+    throw new GameError('A little too fast. Wait a moment and try again.', 429);
+}
+async function persist(db: DB, room: Room) {
+  room.revision++;
+  await db.query('update public.rooms set expires_at=$2 where id=$1', [
+    room.id,
+    new Date(room.expiresAt).toISOString(),
+  ]);
+  for (const [seat, p] of room.players.entries()) {
+    await db.query(
+      'insert into public.players(id,display_name) values($1,$2) on conflict(id) do update set display_name=excluded.display_name',
+      [p.id, p.name],
+    );
+    await db.query(
+      `insert into public.room_participants(room_id,player_id,seat,ready,last_seen) values($1,$2,$3,$4,$5)
+      on conflict(room_id,player_id) do update set ready=excluded.ready,last_seen=excluded.last_seen`,
+      [room.id, p.id, seat, p.ready, new Date(p.lastSeen).toISOString()],
+    );
+  }
+  const m = room.match;
+  await db.query(
+    `insert into public.matches(id,room_id,round,phase,starts_at,ended_at,winner_id,outcome) values($1,$2,$3,$4,$5,$6,$7,$8)
+    on conflict(id) do update set phase=excluded.phase,starts_at=excluded.starts_at,ended_at=excluded.ended_at,winner_id=excluded.winner_id,outcome=excluded.outcome`,
+    [
+      m.id,
+      room.id,
+      m.round,
+      m.phase,
+      m.startsAt === null ? null : new Date(m.startsAt).toISOString(),
+      m.endedAt === null ? null : new Date(m.endedAt).toISOString(),
+      m.winnerId,
+      m.outcome,
+    ],
+  );
+  for (const p of room.players) {
+    for (const [i, a] of p.attempts.entries())
+      await db.query(
+        `insert into public.guess_attempts(match_id,player_id,attempt,word,marks,elapsed_ms,request_id) values($1,$2,$3,$4,$5::jsonb,$6,$7) on conflict do nothing`,
+        [
+          m.id,
+          p.id,
+          i + 1,
+          a.word,
+          JSON.stringify(a.marks),
+          a.elapsedMs,
+          a.requestId,
+        ],
+      );
+    await db.query(
+      'insert into public.rematch_readiness(match_id,player_id,ready) values($1,$2,$3) on conflict(match_id,player_id) do update set ready=excluded.ready',
+      [m.id, p.id, p.rematch],
+    );
+  }
+  await db.query(
+    'insert into private.room_states(room_id,state) values($1,$2::jsonb) on conflict(room_id) do update set state=excluded.state',
+    [room.id, JSON.stringify(room)],
+  );
+  await db.query(
+    'insert into public.room_events(room_id,revision) values($1,$2) on conflict(room_id) do update set revision=excluded.revision',
+    [room.id, room.revision],
+  );
+}
+export async function createRoom(playerId: string, name: string, mode: Mode) {
+  await transaction((db) => rateLimit(db, `create:${playerId}`, 12, 3600));
+  return transaction(async (db) => {
+    const now = await databaseTime(db);
+    const id = randomUUID();
+    let code = '';
+    for (let i = 0; i < 10; i++) {
+      code = Array.from(
+        { length: 6 },
+        () => alphabet[randomInt(alphabet.length)],
+      ).join('');
+      const inserted = await db.query(
+        'insert into public.rooms(id,code,mode,expires_at) values($1,$2,$3,$4) on conflict(code) do nothing returning id',
+        [id, code, mode, new Date(now + 86400000).toISOString()],
+      );
+      if (inserted.length) break;
+      if (i === 9)
+        throw new GameError('Room creation is busy. Please try again.', 503);
+    }
+    const room: Room = {
+      id,
+      code,
+      mode,
+      revision: 0,
+      createdAt: now,
+      expiresAt: now + 86400000,
+      players: [
+        {
+          id: playerId,
+          name,
+          ready: false,
+          rematch: false,
+          lastSeen: now,
+          attempts: [],
+        },
+      ],
+      match: {
+        id: randomUUID(),
+        round: 1,
+        phase: 'lobby',
+        answer: pickAnswer(),
+        startsAt: null,
+        deadline: null,
+        endedAt: null,
+        winnerId: null,
+        outcome: null,
+      },
+    };
+    await persist(db, room);
+    return projectRoom(room, playerId, now);
+  });
+}
+export async function roomOperation(
+  code: string,
+  playerId: string,
+  action?: Action,
+) {
+  await transaction((db) => rateLimit(db, `request:${playerId}`, 180, 60));
+  return transaction(async (db) => {
+    const [row] = await db.query<{ state: Room }>(
+      `select s.state from private.room_states s join public.rooms r on r.id=s.room_id where r.code=$1 for update of s`,
+      [code],
+    );
+    if (!row)
+      throw new GameError(
+        'We could not find that room. Check the code or create a new one.',
+        404,
+      );
+    const room = row.state;
+    const now = await databaseTime(db); // Read after obtaining lock, never trust client time.
+    if (room.expiresAt <= now)
+      throw new GameError('This room has expired. Create a fresh room.', 410);
+    if (!room.players.some((p) => p.id === playerId) && action?.type !== 'join')
+      throw new GameError('Join this room to play.', 403);
+    const before = JSON.stringify(room);
+    if (action)
+      applyAction(
+        room,
+        playerId,
+        action,
+        now,
+        ALLOWED_WORDS,
+        () => pickAnswer(room.match.answer),
+        randomUUID,
+      );
+    else advance(room, now);
+    if (JSON.stringify(room) !== before) await persist(db, room);
+    return projectRoom(room, playerId, now);
+  });
+}
