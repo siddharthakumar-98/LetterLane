@@ -1,6 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
 import { test, expect, type Page } from '@playwright/test';
 async function enterWord(page: Page, word: string) {
+  await expect(
+    page.getByRole('button', { name: 'Submit guess' }),
+  ).toBeEnabled();
   await page.getByRole('heading', { name: 'Your lane', exact: true }).click();
   await page.keyboard.type(word);
   await page.keyboard.press('Enter');
