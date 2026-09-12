@@ -50,7 +50,7 @@ async function persist(db: DB, room: Room) {
   for (const p of room.players) {
     for (const [i, a] of p.attempts.entries())
       await db.query(
-        `insert into public.guess_attempts(match_id,player_id,attempt,word,marks,elapsed_ms,request_id) values($1,$2,$3,$4,$5::jsonb,$6,$7) on conflict do nothing`,
+        `insert into public.guess_attempts(match_id,player_id,attempt,word,marks,elapsed_ms,request_id) values($1,$2,$3,$4,$5::text::jsonb,$6,$7) on conflict do nothing`,
         [
           m.id,
           p.id,
@@ -67,7 +67,8 @@ async function persist(db: DB, room: Room) {
     );
   }
   await db.query(
-    'insert into private.room_states(room_id,state) values($1,$2::jsonb) on conflict(room_id) do update set state=excluded.state',
+    // Bind pre-encoded JSON as text: Postgres.js otherwise JSON-encodes it again.
+    'insert into private.room_states(room_id,state) values($1,$2::text::jsonb) on conflict(room_id) do update set state=excluded.state',
     [room.id, JSON.stringify(room)],
   );
   await db.query(
@@ -134,7 +135,7 @@ export async function roomOperation(
 ) {
   await transaction((db) => rateLimit(db, `request:${playerId}`, 180, 60));
   return transaction(async (db) => {
-    const [row] = await db.query<{ state: Room }>(
+    const [row] = await db.query<{ state: Room | string }>(
       `select s.state from private.room_states s join public.rooms r on r.id=s.room_id where r.code=$1 for update of s`,
       [code],
     );
@@ -143,7 +144,10 @@ export async function roomOperation(
         'We could not find that room. Check the code or create a new one.',
         404,
       );
-    const room = row.state;
+    // v1.0 hosted rooms may contain a JSON string instead of a JSON object.
+    // Read them safely; the next accepted mutation persists the corrected shape.
+    const room: Room =
+      typeof row.state === 'string' ? JSON.parse(row.state) : row.state;
     const now = await databaseTime(db); // Read after obtaining lock, never trust client time.
     if (room.expiresAt <= now)
       throw new GameError('This room has expired. Create a fresh room.', 410);

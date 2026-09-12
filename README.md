@@ -1,5 +1,21 @@
 # Letterlane
 
+## v1.0.1 hosted-room fix
+
+Fixes rooms that create successfully on Supabase but then show “Let's reconnect.”
+Postgres.js was encoding already-stringified JSON a second time. Room snapshots
+and guess marks now bind as text before conversion to JSONB, so both database
+backends store objects and arrays correctly. Existing affected rooms are readable
+and are repaired on their next accepted action or heartbeat. No migration,
+password reset, or environment-variable change is required. Deploy this patch
+from the v1.0 line; it does not include bot opponents.
+
+The regression test uses the real Postgres.js driver over a local PGlite socket,
+including its parameter-description and serialization behavior. It covers room
+creation, refresh, joining, readiness, guesses, privacy, completion, rematches,
+and recovery of rooms written by v1.0. The test socket is local only; production
+connections still require TLS.
+
 An original two-player word game: a friendly duel or a shared co-op win. Built with Next.js App Router, strict TypeScript, React, Tailwind CSS, Supabase Auth/PostgreSQL/Realtime, Zod, and a small set of accessible native controls. Fonts ship locally; no font CDN, image service, AI service, or paid add-on is required.
 
 ## Start on this Mac
