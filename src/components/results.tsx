@@ -71,7 +71,7 @@ export function Results({
           >
             <div className="result-name">
               <div
-                className={`avatar ${p.id === room.selfId ? 'lime' : 'peach'}`}
+                className={`avatar ${p.id === room.selfId ? 'sky' : 'periwinkle'}`}
               >
                 {p.name.slice(0, 1).toUpperCase()}
               </div>

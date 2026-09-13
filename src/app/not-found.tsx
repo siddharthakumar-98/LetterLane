@@ -5,7 +5,7 @@ export default function NotFound() {
       <h1>This lane leads nowhere.</h1>
       <p>Let’s find you a fresh word and a friend.</p>
       <Link className="button primary" href="/">
-        Back to Letterlane
+        Back to LetterLane
       </Link>
     </main>
   );
