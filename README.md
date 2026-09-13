@@ -1,22 +1,22 @@
-# Letterlane
+# Letterlane v1.1
 
-## v1.0.1 hosted-room fix
+An original two-player word game: a friendly duel or a shared co-op win. Built with Next.js App Router, strict TypeScript, React, Tailwind CSS, Supabase Auth/PostgreSQL/Realtime, Zod, and a small set of accessible native controls. Fonts ship locally; no font CDN, image service, AI service, or paid add-on is required.
+
+## Built on v1.0.1
 
 Fixes rooms that create successfully on Supabase but then show “Let's reconnect.”
 Postgres.js was encoding already-stringified JSON a second time. Room snapshots
 and guess marks now bind as text before conversion to JSONB, so both database
 backends store objects and arrays correctly. Existing affected rooms are readable
-and are repaired on their next accepted action or heartbeat. No migration,
-password reset, or environment-variable change is required. Deploy this patch
-from the v1.0 line; it does not include bot opponents.
+and are repaired on their next accepted action or heartbeat. The v1.0.1 fix is retained in this release. Existing deployments only need the
+additive bot migration described below; no password or environment-variable
+changes are required.
 
 The regression test uses the real Postgres.js driver over a local PGlite socket,
 including its parameter-description and serialization behavior. It covers room
 creation, refresh, joining, readiness, guesses, privacy, completion, rematches,
 and recovery of rooms written by v1.0. The test socket is local only; production
 connections still require TLS.
-
-An original two-player word game: a friendly duel or a shared co-op win. Built with Next.js App Router, strict TypeScript, React, Tailwind CSS, Supabase Auth/PostgreSQL/Realtime, Zod, and a small set of accessible native controls. Fonts ship locally; no font CDN, image service, AI service, or paid add-on is required.
 
 ## Start on this Mac
 
@@ -28,6 +28,18 @@ cd "$HOME/Desktop/LetterLane"
 Open **http://127.0.0.1:3000**. Create a room in a normal browser window, and open its invite in a private/incognito window or a different browser. Tabs in the same browser profile intentionally share one guest identity. The launcher can use the Node and pnpm runtime already bundled with Codex on this Mac; it does not install global software.
 
 No credentials are needed for local mode. Data persists in `.letterlane/` across refreshes and server restarts. Local mode uses embedded PostgreSQL (PGlite), opaque HttpOnly guest cookies, and one-second snapshot polling. It is intended for a single local server process bound to loopback, not public hosting. Use the Supabase configuration below for Internet play and immediate Realtime updates. Mobile Playwright coverage emulates mobile screen sizes; local invite links point to the same computer.
+
+## New in v1.1: a bot when the room is still waiting
+
+If a room has only its creator after **45 seconds**, **Pip** fills the second seat. The lobby shows a countdown and clearly labels Pip as a bot in the lobby, match header, and results. The creator still chooses **I'm ready**; if already ready, the normal three-second countdown starts when Pip joins. This works in duel and co-op. Invite friends before the seat fills to play the original two-human game.
+
+The timer starts at room creation, uses the database clock, and survives refreshes. Two-human rooms never receive a bot, including when a human disconnects. Once Pip occupies the seat, it counts toward the existing two-player capacity; a later invitation cannot displace it. If a human join obtains the lock before bot assignment, that human gets the seat.
+
+Pip makes one guess every **8–12 seconds**, using only its own evaluated guesses and the existing answer vocabulary. Its strategy is never given the actual answer or the human's guesses. It follows the same scoring, six-attempt limit, finish window, and tie-breaks. Pip automatically agrees to rematches; the human still decides whether to start another round.
+
+**Upgrading an existing Supabase database:** apply `supabase/migrations/202609110001_bots.sql` before deploying v1.1, or run `pnpm db:migrate` if you used the migration runner originally. This adds `players.is_bot` with a default of false; existing identities, rooms and match history are preserved. Local mode applies this additive migration on startup. No new credentials, services or configuration variables are required.
+
+Bot assignment and moves run during authenticated room requests under the same database row lock as human actions. The existing one-second poll wakes them, so a visible room gains a bot on the first request at or after 45 seconds. Pending moves are stored privately in PostgreSQL. Multiple tabs cannot create extra bots or duplicate turns. If every browser is closed or offline, the bot pauses until another request arrives and then takes at most one due move, with the actual server timestamp; it does not replay a burst of missed guesses.
 
 ## Standard local development
 
@@ -60,7 +72,7 @@ Dependency versions are pinned by `pnpm-lock.yaml`. TypeScript 6.0 and ESLint 9 
 1. Create a Supabase project (the free plan is sufficient for development). In **Authentication → Providers**, enable anonymous sign-ins. Set your application URL in Auth URL configuration. Supabase's anonymous-session limits apply; review them before opening the app publicly.
 2. Copy the project URL and anon/publishable client key into `.env.local`. Copy the **transaction pooler** PostgreSQL connection string into `DATABASE_URL`. This is a privileged, server-only database credential. URL-encode special characters in its password. Use the pooler from the same region as your app.
 3. Set `GAME_BACKEND=supabase`. Do not prefix the database connection string or any secret with `NEXT_PUBLIC_`. The app does not require a service-role API key.
-4. Apply both migrations in order, either using the Supabase SQL editor or the migration command:
+4. Apply all migrations in order, either using the Supabase SQL editor or the migration command:
 
    ```sh
    pnpm db:migrate
@@ -89,6 +101,7 @@ No cloud account or credentials were supplied for this implementation, so hosted
 - When neither solves, compare each player's best single guess: (1) most correctly identified letter occurrences, including misplaced ones, (2) earliest attempt that reached that maximum, (3) most exact positions, (4) most misplaced letters. If all values match, draw. Duplicate letter occurrences are counted only up to the occurrences in the answer. This explicitly defines “fewest guesses required to reveal the most correct letters.”
 - **Co-op:** either solve ends the match with a team win. If both exhaust six attempts, the team loses. Letters remain private during play in both modes.
 - A repeated accepted word is rejected without consuming a turn. Replaying the same request UUID with the same payload returns the saved state; reusing that UUID with different content is rejected. A match UUID prevents late requests from leaking into a rematch.
+- In a bot room, Pip automatically supplies its rematch vote; a human vote remains required.
 - Two rematch votes immediately schedule a new three-second countdown. The room and guest identities persist, but the answer always changes.
 - Rooms expire after 24 hours. Starting a rematch renews the room. A 15-second missing heartbeat marks a player disconnected; it never forfeits or destroys their game. The same browser profile can rejoin until expiration. Clearing cookies/storage or using a different profile creates a different guest and cannot reclaim an occupied seat.
 - There is no inactivity-forfeit timer. An absent opponent can return, or you can start another room. An unresolved room eventually expires.
@@ -111,7 +124,7 @@ Per-player JSON snapshot → own evaluated guesses + masked opponent counts
 ```
 
 - `src/lib/game/`: scoring, validation, types, state transitions and winner comparison. Scoring and rule decisions are independently tested.
-- `src/lib/server/`: authentication, transactional storage, room operations, secure HTTP responses, and vocabulary. `server-only` prevents bundling the implementation or vocabulary into client modules.
+- `src/lib/server/`: authentication, transactional storage, room operations, secure HTTP responses, vocabulary, bot strategy and persisted bot scheduling. `server-only` prevents bundling the implementation or vocabulary into client modules.
 - `src/lib/client/`: authenticated API calls and focused room synchronization hook. Supabase Realtime invalidates snapshots immediately; polling repairs missed events and advances countdown/finish deadlines. Online/offline events and five-second heartbeats support reconnection. Realtime payloads and presence are never treated as authoritative scores or identities.
 - `src/components/`: start screen, lobby, board, keyboard, results, and shared accessible controls. Local input stays in React; accepted history lives in the database. Native `<dialog>` provides focus trapping, Escape handling and focus restoration. Screen readers get evaluated letter states and result announcements; motion respects `prefers-reduced-motion`.
 - `supabase/migrations/`: normalized room/player/match/attempt/rematch tables, private state, constraints, RLS, and Realtime membership policies.
@@ -123,6 +136,7 @@ All transitions for one room serialize on its database row. Different rooms rema
 - The server verifies Supabase access tokens with `auth.getUser`, or looks up a cryptographically random local HttpOnly cookie by SHA-256 hash. The request body never chooses its player ID.
 - The `private` schema is not exposed to Supabase's Data API. `anon` and `authenticated` have no privileges there. RLS is enabled on all tables, including private tables; the trusted server DB role performs transitions.
 - Client roles have read-only access to public projections, conditioned on membership in an unexpired room. Direct reads of attempts expose only the caller's attempts, even after completion. End-of-match opponent history and answers are revealed by the authenticated Next API after server-side completion checks. There are no client write policies.
+- Bots are server-created player identities with no Auth account or guest cookie. The API rejects attempts to act as a bot; bot flags and scheduling cannot be supplied in client action bodies. The scheduler timestamp stays in private state and is excluded from snapshots.
 - Seat constraints limit each room to two players. Match/attempt keys cap six attempts and prevent duplicate request IDs and duplicate words. Application checks also enforce membership, phase, match ID, allowed vocabulary, and solved-player restrictions.
 - Only an answer-free revision counter is published to Realtime. Opponent guesses and the answer do not appear in active JSON responses, page props, browser bundles, or log messages. Database errors are never returned or logged verbatim.
 - Mutations require same-origin requests, limit the JSON body to 2 KiB while reading, validate a strict action schema, and enforce per-identity database-backed limits (12 room creations/hour; 180 room requests/minute). Invalid actions also count toward the limit. Supabase Auth handles initial guest-signup abuse limits; consider its CAPTCHA option if abuse becomes a problem.
@@ -138,6 +152,6 @@ To expand them, use a suitably licensed word list, keep only unique uppercase A�
 
 This design targets small private matches. Per-room locks and the transaction pooler make horizontal app instances consistent. PGlite local mode is deliberately single-process and is not a deployment backend.
 
-The one-second fallback polling and five-second heartbeats prioritize predictable recovery. At larger concurrency, increase the polling interval when Realtime is healthy, use broadcast invalidations, narrow persistence to changed projections, tune Supabase Realtime connection limits, and monitor pool saturation. Each heartbeat currently rewrites the small room snapshot and upserts projections. Rate-limit buckets should be moved to a purpose-built scalable store only if necessary; no additional service is required at this scale.
+The one-second fallback polling and five-second heartbeats prioritize predictable recovery and advance bot actions. Bot scheduling adds no background worker or cron service. At larger concurrency, increase the polling interval when Realtime is healthy, use broadcast invalidations, narrow persistence to changed projections, tune Supabase Realtime connection limits, and monitor pool saturation. Each heartbeat currently rewrites the small room snapshot and upserts projections. Rate-limit buckets should be moved to a purpose-built scalable store only if necessary; no additional service is required at this scale.
 
 Schedule database maintenance appropriate to your retention policy (SQL examples in `supabase/maintenance.sql`). Expired rooms are inaccessible immediately but retained until cleanup; deleting them cascades to match/attempt/private state rows. Preserve data you need before running cleanup. Guest rows are kept while referenced by room history. Database backups and service uptime depend on your Supabase plan. No external scheduled service is required for game correctness.

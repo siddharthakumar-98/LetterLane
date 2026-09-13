@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ArrowRight, RotateCcw, Sparkles, Trophy } from 'lucide-react';
 import type { RoomView } from '@/lib/game/types';
 import { Board } from './board';
+import { BotTag } from './bot-notice';
 export function formatTime(ms: number) {
   const seconds = Math.max(0, Math.floor(ms / 1000));
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
@@ -18,6 +19,7 @@ export function Results({
 }) {
   const me = room.players.find((p) => p.id === room.selfId)!;
   const winner = room.players.find((p) => p.id === room.match.winnerId);
+  const hasBot = room.players.some((p) => p.isBot);
   const teamWin = room.match.outcome === 'team-win';
   const title =
     room.mode === 'coop'
@@ -76,6 +78,7 @@ export function Results({
               <strong>
                 {p.name}
                 {p.id === room.selfId && <small>YOU</small>}
+                {p.isBot && <BotTag />}
               </strong>
               {p.id === winner?.id && <Trophy size={18} />}
             </div>
@@ -121,9 +124,11 @@ export function Results({
         </Link>
       </div>
       <p className="muted rematch-note">
-        {room.players.some((p) => p.rematch && p.id !== room.selfId)
-          ? 'Your friend is ready for a rematch.'
-          : 'Same company. A new word. Both players choose to play again.'}
+        {hasBot
+          ? 'Pip is ready for another round whenever you are.'
+          : room.players.some((p) => p.rematch && p.id !== room.selfId)
+            ? 'Your friend is ready for a rematch.'
+            : 'Same company. A new word. Both players choose to play again.'}
       </p>
     </section>
   );

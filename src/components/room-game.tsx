@@ -20,6 +20,7 @@ import { Results, formatTime } from './results';
 import { useRoom } from '@/lib/client/use-room';
 import type { PlayerView, RoomView } from '@/lib/game/types';
 import { nameSchema } from '@/lib/game/validation';
+import { BotNotice, BotTag } from './bot-notice';
 function PlayerBadge({
   player,
   self,
@@ -29,7 +30,7 @@ function PlayerBadge({
   self?: boolean;
   now: number;
 }) {
-  const online = player && now - player.lastSeen < 15000;
+  const online = player && (player.isBot || now - player.lastSeen < 15000);
   return (
     <div className={`player-badge ${self ? '' : 'opponent-badge'}`}>
       <div className={`avatar ${self ? 'lime' : 'peach'}`}>
@@ -39,16 +40,19 @@ function PlayerBadge({
         <strong>
           {player?.name ?? 'Your friend'}
           {self && <span className="you-tag">YOU</span>}
+          {player?.isBot && <BotTag />}
         </strong>
         <span className="player-status">
           <i className={online ? 'online' : ''} />
           {!player
             ? 'An open invitation'
-            : online
-              ? player.ready
-                ? 'Ready to play'
-                : 'In the room'
-              : 'Disconnected · waiting'}
+            : player.isBot
+              ? 'Bot · ready to play'
+              : online
+                ? player.ready
+                  ? 'Ready to play'
+                  : 'In the room'
+                : 'Disconnected · waiting'}
         </span>
       </div>
     </div>
@@ -91,6 +95,7 @@ function Lobby({
             ? 'Send them the link. The good kind of rivalry is one click away.'
             : 'Take a breath. You’ll start together when you’re both ready.'}
         </p>
+        <BotNotice room={room} now={now} />
         <button
           className="room-code-card"
           onClick={onCopy}
@@ -424,12 +429,14 @@ export function RoomGame({ code }: { code: string }) {
               </div>
               <PlayerBadge player={opponent} now={now} />
             </div>
-            {opponent && now - opponent.lastSeen >= 15000 && (
-              <p className="opponent-offline" role="status">
-                Your friend disconnected. They can rejoin this room with their
-                progress intact.
-              </p>
-            )}
+            {opponent &&
+              !opponent.isBot &&
+              now - opponent.lastSeen >= 15000 && (
+                <p className="opponent-offline" role="status">
+                  Your friend disconnected. They can rejoin this room with their
+                  progress intact.
+                </p>
+              )}
             <div className="arena">
               <section className="your-lane" aria-labelledby="your-lane-title">
                 <div className="lane-heading">
@@ -454,7 +461,10 @@ export function RoomGame({ code }: { code: string }) {
                       You found it! Checking the finish…
                     </span>
                   ) : me?.count === 6 ? (
-                    <span>Your six are in. Waiting for your friend…</span>
+                    <span>
+                      Your six are in. Waiting for{' '}
+                      {opponent?.isBot ? 'Pip' : 'your friend'}…
+                    </span>
                   ) : phase === 'countdown' ? (
                     'Both boards open at the same time.'
                   ) : (
@@ -476,8 +486,9 @@ export function RoomGame({ code }: { code: string }) {
                   <LockKeyhole size={16} />
                 </div>
                 <p className="opponent-description">
-                  {opponent?.name}’s progress. The words are their little
-                  secret.
+                  {opponent?.isBot
+                    ? 'Pip uses its own clues. Bot guesses stay hidden until the round ends.'
+                    : `${opponent?.name}’s progress. The words are their little secret.`}
                 </p>
                 <MaskedBoard count={opponent?.count ?? 0} />
                 <div className="opponent-note">

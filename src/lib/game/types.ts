@@ -7,6 +7,8 @@ export type Attempt = {
   requestId: string;
 };
 export type Player = {
+  /** Absent in pre-v1.1 saved rooms; absence means a human. */
+  isBot?: boolean;
   id: string;
   name: string;
   ready: boolean;
@@ -15,6 +17,8 @@ export type Player = {
   attempts: Attempt[];
 };
 export type Room = {
+  /** Private scheduling state: never projected to clients. */
+  botNextGuessAt?: number | null;
   id: string;
   code: string;
   mode: Mode;
@@ -39,7 +43,7 @@ export type PlayerView = Omit<Player, 'attempts'> & {
   solved: boolean;
   attempts?: Attempt[];
 };
-export type RoomView = Omit<Room, 'players' | 'match'> & {
+export type RoomView = Omit<Room, 'players' | 'match' | 'botNextGuessAt'> & {
   selfId: string;
   players: PlayerView[];
   serverTime: number;

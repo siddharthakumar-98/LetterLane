@@ -81,6 +81,11 @@ export function HowToPlay() {
           solves it, you both win. Your friend’s letters stay hidden until the
           result in either mode.
         </p>
+        <p>
+          <strong>Playing solo?</strong> If no second player joins your room
+          after 45 seconds, Pip, a clearly labeled bot, fills the open seat. It
+          plays from its own clues and is always ready for a rematch.
+        </p>
         <button
           className="button primary full"
           onClick={() => ref.current?.close()}

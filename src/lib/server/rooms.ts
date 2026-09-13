@@ -2,8 +2,9 @@ import 'server-only';
 import { randomInt, randomUUID } from 'node:crypto';
 import { transaction, databaseTime, type DB } from './db';
 import { ALLOWED_WORDS, pickAnswer } from './words';
-import { advance, applyAction, projectRoom } from '../game/rules';
+import { applyAction, projectRoom } from '../game/rules';
 import { GameError, type Action, type Mode, type Room } from '../game/types';
+import { advanceBots } from './bots';
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 async function rateLimit(db: DB, key: string, max: number, seconds: number) {
   const [row] = await db.query<{ hits: number }>(
@@ -23,8 +24,8 @@ async function persist(db: DB, room: Room) {
   ]);
   for (const [seat, p] of room.players.entries()) {
     await db.query(
-      'insert into public.players(id,display_name) values($1,$2) on conflict(id) do update set display_name=excluded.display_name',
-      [p.id, p.name],
+      'insert into public.players(id,display_name,is_bot) values($1,$2,$3) on conflict(id) do update set display_name=excluded.display_name,is_bot=excluded.is_bot',
+      [p.id, p.name, p.isBot ?? false],
     );
     await db.query(
       `insert into public.room_participants(room_id,player_id,seat,ready,last_seen) values($1,$2,$3,$4,$5)
@@ -134,7 +135,7 @@ export async function roomOperation(
   action?: Action,
 ) {
   await transaction((db) => rateLimit(db, `request:${playerId}`, 180, 60));
-  return transaction(async (db) => {
+  const result = await transaction(async (db) => {
     const [row] = await db.query<{ state: Room | string }>(
       `select s.state from private.room_states s join public.rooms r on r.id=s.room_id where r.code=$1 for update of s`,
       [code],
@@ -144,28 +145,45 @@ export async function roomOperation(
         'We could not find that room. Check the code or create a new one.',
         404,
       );
-    // v1.0 hosted rooms may contain a JSON string instead of a JSON object.
-    // Read them safely; the next accepted mutation persists the corrected shape.
-    const room: Room =
+    // Older hosted rooms may contain a JSON string instead of a JSON object.
+    // The next accepted mutation persists the corrected shape.
+    let room: Room =
       typeof row.state === 'string' ? JSON.parse(row.state) : row.state;
     const now = await databaseTime(db); // Read after obtaining lock, never trust client time.
     if (room.expiresAt <= now)
       throw new GameError('This room has expired. Create a fresh room.', 410);
-    if (!room.players.some((p) => p.id === playerId) && action?.type !== 'join')
+    const participant = room.players.find((p) => p.id === playerId);
+    if (participant?.isBot || (!participant && action?.type !== 'join'))
       throw new GameError('Join this room to play.', 403);
     const before = JSON.stringify(room);
-    if (action)
-      applyAction(
-        room,
-        playerId,
-        action,
-        now,
-        ALLOWED_WORDS,
-        () => pickAnswer(room.match.answer),
-        randomUUID,
-      );
-    else advance(room, now);
+    // Give an incoming human the open seat if no bot has claimed it yet.
+    if (action?.type !== 'join' || participant) advanceBots(room, now);
+    let rejected: GameError | undefined;
+    if (action) {
+      const candidate = structuredClone(room);
+      try {
+        applyAction(
+          candidate,
+          playerId,
+          action,
+          now,
+          ALLOWED_WORDS,
+          () => pickAnswer(candidate.match.answer),
+          randomUUID,
+        );
+        room = candidate;
+      } catch (error) {
+        if (!(error instanceof GameError)) throw error;
+        rejected = error;
+      }
+    }
+    advanceBots(room, now);
     if (JSON.stringify(room) !== before) await persist(db, room);
-    return projectRoom(room, playerId, now);
+    // Commit due bot actions/deadlines even if the human sent an invalid action.
+    return rejected
+      ? { error: rejected }
+      : { view: projectRoom(room, playerId, now) };
   });
+  if (result.error) throw result.error;
+  return result.view!;
 }
