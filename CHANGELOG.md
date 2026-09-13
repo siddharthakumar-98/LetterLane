@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.1 — 2026-09-13
+
+- Expand accepted guesses from 1,049 to 14,856 by merging the official Wordle client word list with the existing dictionary.
+- Accept IRATE, PLOWS, LOOPS, and 13,804 other newly available guesses while retaining every original entry.
+- Keep the 825 possible answers, bot behavior, scoring, and multiplayer rules unchanged.
+- Record the source asset and checksum and add validation and multiplayer browser coverage for the reported words.
+- No database migration or new configuration is required.
+
 ## 1.1.0 — 2026-09-13
 
 - Build on v1.0.1, retaining the hosted JSON persistence fix, recovery of affected rooms, and production-driver regression tests.

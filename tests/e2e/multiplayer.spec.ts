@@ -184,7 +184,7 @@ test('two guests create, join, ready, play concurrently, reconnect, finish and r
     await thirdContext.close();
   }
 });
-test('co-op and invalid invitation states work', async ({
+test('expanded dictionary guesses, co-op and invalid invitation states work', async ({
   browser,
   page,
 }, testInfo) => {
@@ -214,6 +214,21 @@ test('co-op and invalid invitation states work', async ({
     await expect(
       friend.getByRole('button', { name: 'Submit guess' }),
     ).toBeEnabled();
+    for (const [index, word] of ['IRATE', 'PLOWS', 'LOOPS'].entries()) {
+      await enterWord(page, word);
+      await expect
+        .poll(async () =>
+          page.evaluate(async () => {
+            const code = location.pathname.split('/').at(-1);
+            const room = await (await fetch(`/api/rooms/${code}`)).json();
+            return room.players[0].count;
+          }),
+        )
+        .toBe(index + 1);
+      await expect(
+        page.getByText('That word is not in our dictionary. Try another.'),
+      ).not.toBeVisible();
+    }
     await enterWord(friend, 'CRANE');
     await expect(
       page.getByRole('heading', { name: 'A win for both of you.' }),
