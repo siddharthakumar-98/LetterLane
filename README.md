@@ -1,4 +1,4 @@
-# Letterlane v1.1
+# Letterlane v1.1.1
 
 An original two-player word game: a friendly duel or a shared co-op win. Built with Next.js App Router, strict TypeScript, React, Tailwind CSS, Supabase Auth/PostgreSQL/Realtime, Zod, and a small set of accessible native controls. Fonts ship locally; no font CDN, image service, AI service, or paid add-on is required.
 
@@ -144,7 +144,9 @@ All transitions for one room serialize on its database row. Different rooms rema
 
 ## Vocabulary
 
-`src/lib/server/dictionary/answers.json` contains **825** hand-curated possible answers. `allowed-guesses.json` contains **1,049** allowed guesses, including every answer. These are intentionally modest development lists, not a comprehensive English dictionary and not a copy of Wordle's list or assets. Some legitimate English guesses will be rejected.
+`src/lib/server/dictionary/answers.json` contains **825** hand-curated possible answers. `allowed-guesses.json` contains **14,856** allowed guesses: the **14,855** entries extracted from the official NYT Wordle client on September 13, 2026, combined with every existing LetterLane entry. This includes IRATE, PLOWS, LOOPS, and the original LetterLane-only entry FOOEY. The answer pool and bot strategy are unchanged; expanding accepted guesses does not add obscure words to the answer pool.
+
+See [dictionary source notes](src/lib/server/dictionary/SOURCES.md) for the exact source asset, checksum, extraction method, and preservation checks. The list is a pinned snapshot, not a runtime dependency or an automatic sync with NYT. Updating the dictionary requires a new application build, with no Supabase migration or environment-variable changes.
 
 To expand them, use a suitably licensed word list, keep only unique uppercase A–Z strings of length five, ensure all answers appear in the allowed list, and review possible answers for familiarity and appropriateness. Preserve the upstream license/attribution if importing a third-party list. Run `pnpm test` after editing; dictionary tests enforce the format and subset relationship. Vocabulary is server-only and requires a rebuild when changed. No seed API or AI service is involved.
 
