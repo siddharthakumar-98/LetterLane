@@ -33,7 +33,7 @@ function PlayerBadge({
   const online = player && (player.isBot || now - player.lastSeen < 15000);
   return (
     <div className={`player-badge ${self ? '' : 'opponent-badge'}`}>
-      <div className={`avatar ${self ? 'lime' : 'peach'}`}>
+      <div className={`avatar ${self ? 'sky' : 'periwinkle'}`}>
         {player ? player.name[0].toUpperCase() : '?'}
       </div>
       <div>

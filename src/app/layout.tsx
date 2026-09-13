@@ -8,7 +8,7 @@ import '@fontsource/space-grotesk/600.css';
 import '@fontsource/space-grotesk/700.css';
 import './globals.css';
 export const metadata: Metadata = {
-  title: 'Letterlane — A little friendly wordplay',
+  title: 'LetterLane — A little friendly wordplay',
   description:
     'One hidden word. Two curious minds. A private, real-time word game for friends.',
   robots: { index: false, follow: false },

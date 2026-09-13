@@ -180,7 +180,7 @@ export default function Home() {
           </div>
           <div className="preview-game">
             <div className="preview-player">
-              <div className="avatar lime">Y</div>
+              <div className="avatar sky">Y</div>
               <div>
                 <strong>You</strong>
                 <span>A hunch, then a breakthrough.</span>
@@ -232,7 +232,7 @@ export default function Home() {
             </div>
           </div>
           <div className="friend-slip">
-            <div className="avatar peach">F</div>
+            <div className="avatar periwinkle">F</div>
             <div>
               <strong>Your friend</strong>
               <span>One guess behind. Probably.</span>

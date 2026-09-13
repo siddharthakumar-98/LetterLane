@@ -1,14 +1,14 @@
 'use client';
 import Link from 'next/link';
+import Image from 'next/image';
+import brandLogo from '@/app/icon.jpg';
 import { useRef } from 'react';
 import { ArrowUpRight, HelpCircle, X } from 'lucide-react';
 export function Logo() {
   return (
-    <Link href="/" aria-label="Letterlane home" className="logo">
-      <span className="logo-mark" aria-hidden="true">
-        l<span>l</span>
-      </span>
-      letterlane<span className="logo-period">.</span>
+    <Link href="/" aria-label="LetterLane home" className="logo">
+      <Image src={brandLogo} alt="" className="logo-mark" sizes="56px" />
+      LetterLane<span className="logo-period">.</span>
     </Link>
   );
 }
