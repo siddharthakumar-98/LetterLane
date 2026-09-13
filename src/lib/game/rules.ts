@@ -191,7 +191,12 @@ export function projectRoom(
     throw new GameError('Join this room to play.', 403);
   const { answer, ...match } = room.match;
   return {
-    ...room,
+    id: room.id,
+    code: room.code,
+    mode: room.mode,
+    revision: room.revision,
+    createdAt: room.createdAt,
+    expiresAt: room.expiresAt,
     selfId: playerId,
     serverTime: now,
     match: { ...match, ...(match.phase === 'complete' ? { answer } : {}) },

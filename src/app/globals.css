@@ -2131,3 +2131,62 @@ input::placeholder {
 .opponent-description {
   color: #53634f;
 }
+
+.bot-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 7px;
+  padding: 2px 5px;
+  border: 1px solid #afc5a2;
+  border-radius: 4px;
+  color: #34513d;
+  background: #e7f0db;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  font-weight: 600;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.bot-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 13px 15px;
+  text-align: left;
+  background: #edf1e8;
+  border: 1px solid #d2ddc9;
+  border-radius: 10px;
+  color: #405740;
+}
+.bot-notice > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.bot-notice strong {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.bot-notice p {
+  margin-top: 4px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.bot-arrived {
+  background: #e9f3d7;
+  border-color: #b8d094;
+}
+.result-name .bot-tag {
+  margin-left: 0;
+  margin-top: 4px;
+}
+@media (max-width: 640px) {
+  .match-header .bot-tag {
+    font-size: 0.75rem;
+    margin-left: 4px;
+  }
+  .match-header .bot-tag svg {
+    display: none;
+  }
+}

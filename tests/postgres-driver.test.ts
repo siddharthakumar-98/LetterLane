@@ -35,6 +35,9 @@ beforeAll(async () => {
   await db.exec(
     await readFile('supabase/migrations/202609090001_core.sql', 'utf8'),
   );
+  await db.exec(
+    await readFile('supabase/migrations/202609110001_bots.sql', 'utf8'),
+  );
   server = new PGLiteSocketServer({ db, path: join(folder, '.s.PGSQL.5432') });
   await server.start();
   vi.stubEnv('GAME_BACKEND', 'supabase');
@@ -143,4 +146,65 @@ it('recovers existing double-encoded rooms and repairs them on the next action',
   );
   expect(repaired.kind).toBe('object');
   expect((await roomOperation(created.code, p1)).players[0].ready).toBe(true);
+});
+
+it('persists bot joins, guesses, reconnection and rematches through Postgres.js', async () => {
+  const created = await createRoom(p1, 'Ada', 'coop');
+  await transaction((tx) =>
+    tx.query(
+      `update private.room_states set state=jsonb_set(state,'{createdAt}',to_jsonb((extract(epoch from clock_timestamp())*1000-46000)::bigint)) where room_id=$1`,
+      [created.id],
+    ),
+  );
+  const ready = await roomOperation(created.code, p1, { type: 'ready' });
+  const bot = ready.players.find((player) => player.isBot)!;
+  expect(bot.ready).toBe(true);
+  expect(ready.match.phase).toBe('countdown');
+  await transaction((tx) =>
+    tx.query(
+      `update private.room_states set state=jsonb_set(jsonb_set(jsonb_set(state,'{match,answer}','"CRANE"'),'{match,startsAt}',to_jsonb((extract(epoch from clock_timestamp())*1000-1000)::bigint)),'{botNextGuessAt}',to_jsonb((extract(epoch from clock_timestamp())*1000-1000)::bigint)) where room_id=$1`,
+      [created.id],
+    ),
+  );
+  const played = await roomOperation(created.code, p1);
+  expect(played.players.find((player) => player.id === bot.id)?.count).toBe(1);
+  expect(played).not.toHaveProperty('botNextGuessAt');
+  if (played.match.phase !== 'complete') {
+    expect(
+      played.players.find((player) => player.id === bot.id),
+    ).not.toHaveProperty('attempts');
+    expect(played.match).not.toHaveProperty('answer');
+  }
+  const [stored] = await transaction((tx) =>
+    tx.query<{ kind: string; marks_kind: string; is_bot: boolean }>(
+      `select jsonb_typeof(s.state) as kind,jsonb_typeof(g.marks) as marks_kind,p.is_bot
+     from private.room_states s join public.guess_attempts g on g.match_id=$2
+     join public.players p on p.id=g.player_id where s.room_id=$1 and p.id=$3`,
+      [created.id, created.match.id, bot.id],
+    ),
+  );
+  expect(stored).toEqual({ kind: 'object', marks_kind: 'array', is_bot: true });
+  const reconnected = await roomOperation(created.code, p1);
+  expect(
+    reconnected.players.find((player) => player.id === bot.id)?.count,
+  ).toBe(1);
+  if (reconnected.match.phase !== 'complete') {
+    await roomOperation(created.code, p1, {
+      type: 'guess',
+      word: 'CRANE',
+      matchId: created.match.id,
+      requestId: randomUUID(),
+    });
+  }
+  const complete = await roomOperation(created.code, p1);
+  expect(complete.match.phase).toBe('complete');
+  expect(complete.players.find((player) => player.id === bot.id)?.rematch).toBe(
+    true,
+  );
+  const rematch = await roomOperation(created.code, p1, { type: 'rematch' });
+  expect(rematch.match.round).toBe(2);
+  expect(rematch.players.find((player) => player.id === bot.id)?.count).toBe(0);
+  expect((await roomOperation(created.code, p1)).match.id).toBe(
+    rematch.match.id,
+  );
 });

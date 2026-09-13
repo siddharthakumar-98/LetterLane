@@ -6,6 +6,7 @@ import path from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { createRoom, roomOperation } from '../src/lib/server/rooms';
 import { transaction } from '../src/lib/server/db';
+import type { RoomView } from '../src/lib/game/types';
 import { p1, p2, p3 } from './fixtures';
 let folder: string;
 beforeAll(async () => {
@@ -118,12 +119,16 @@ it('applies Supabase RLS policies and hides private state from authenticated rol
     await db.exec(
       await readFile('supabase/migrations/202609090002_security.sql', 'utf8'),
     );
+    await db.exec(
+      await readFile('supabase/migrations/202609110001_bots.sql', 'utf8'),
+    );
     const room = randomUUID(),
       match = randomUUID();
     await db.query(
       "insert into public.players(id,display_name) values($1,'Ada'),($2,'Max'),($3,'Other')",
       [p1, p2, p3],
     );
+    await db.query('update public.players set is_bot=true where id=$1', [p2]);
     await db.query(
       "insert into public.rooms(id,code,mode,expires_at) values($1,'ABCDEF','duel',now()+interval '1 day')",
       [room],
@@ -163,4 +168,127 @@ it('applies Supabase RLS policies and hides private state from authenticated rol
   } finally {
     await db.close();
   }
+});
+
+async function expireSearch(room: RoomView) {
+  await transaction(async (db) => {
+    await db.query(
+      "update private.room_states set state=jsonb_set(state,'{createdAt}',to_jsonb((extract(epoch from clock_timestamp())*1000-45001)::bigint)) where room_id=$1",
+      [room.id],
+    );
+  });
+}
+it('a human join cancels bot fallback while a concurrent bot claim cannot create a third seat', async () => {
+  const room = await createRoom(p1, 'Ada', 'duel');
+  await expireSearch(room);
+  await roomOperation(room.code, p2, { type: 'join', name: 'Max' });
+  expect(
+    (await roomOperation(room.code, p1)).players.some((p) => p.isBot),
+  ).toBe(false);
+  const racing = await createRoom(p1, 'Ada', 'duel');
+  await expireSearch(racing);
+  const outcomes = await Promise.allSettled([
+    roomOperation(racing.code, p1),
+    roomOperation(racing.code, p2, { type: 'join', name: 'Max' }),
+  ]);
+  expect(outcomes[0].status).toBe('fulfilled');
+  const view = await roomOperation(racing.code, p1);
+  expect(view.players).toHaveLength(2);
+  const rows = await transaction((db) =>
+    db.query('select seat from public.room_participants where room_id=$1', [
+      racing.id,
+    ]),
+  );
+  expect(rows).toHaveLength(2);
+  if (outcomes[1].status === 'fulfilled')
+    expect(view.players.some((p) => p.isBot)).toBe(false);
+  else expect(view.players.filter((p) => p.isBot)).toHaveLength(1);
+});
+it('serializes bot assignment and due guesses, masks state, rejects impersonation and supports rematches', async () => {
+  const room = await createRoom(p1, 'Ada', 'duel');
+  await roomOperation(room.code, p1, { type: 'ready' });
+  await expireSearch(room);
+  const snapshots = await Promise.all(
+    Array.from({ length: 8 }, () => roomOperation(room.code, p1)),
+  );
+  const companion = snapshots[0].players.find((p) => p.isBot)!;
+  expect(companion).toMatchObject({ name: 'Pip', ready: true, count: 0 });
+  expect(snapshots.every((r) => r.players.length === 2)).toBe(true);
+  expect(new Set(snapshots.map((r) => r.revision)).size).toBe(1);
+  const [stored] = await transaction((db) =>
+    db.query<{ is_bot: boolean }>(
+      'select is_bot from public.players where id=$1',
+      [companion.id],
+    ),
+  );
+  expect(stored.is_bot).toBe(true);
+  await transaction(async (db) => {
+    await db.query(
+      `update private.room_states set state=jsonb_set(jsonb_set(jsonb_set(state,'{match,phase}','"active"'),'{match,startsAt}',to_jsonb((extract(epoch from clock_timestamp())*1000-20000)::bigint)),'{botNextGuessAt}','0') where room_id=$1`,
+      [room.id],
+    );
+  });
+  const moved = await Promise.all(
+    Array.from({ length: 8 }, () => roomOperation(room.code, p1)),
+  );
+  expect(moved.every((r) => r.players.find((p) => p.isBot)?.count === 1)).toBe(
+    true,
+  );
+  expect(moved[0].players.find((p) => p.isBot)).not.toHaveProperty('attempts');
+  expect(moved[0]).not.toHaveProperty('botNextGuessAt');
+  expect(moved[0].match).not.toHaveProperty('answer');
+  const attempts = await transaction((db) =>
+    db.query(
+      'select * from public.guess_attempts where match_id=$1 and player_id=$2',
+      [room.match.id, companion.id],
+    ),
+  );
+  expect(attempts).toHaveLength(1);
+  await expect(
+    roomOperation(room.code, companion.id, { type: 'heartbeat' }),
+  ).rejects.toThrow('Join');
+  await roomOperation(room.code, p1, {
+    type: 'guess',
+    word: 'CRANE',
+    requestId: randomUUID(),
+    matchId: room.match.id,
+  });
+  await transaction(async (db) => {
+    await db.query(
+      "update private.room_states set state=jsonb_set(state,'{match,deadline}','0') where room_id=$1",
+      [room.id],
+    );
+  });
+  const completed = await roomOperation(room.code, p1);
+  expect(completed.match.phase).toBe('complete');
+  expect(completed.players.find((p) => p.isBot)?.rematch).toBe(true);
+  expect(completed.players.find((p) => p.isBot)?.attempts).toHaveLength(1);
+  const next = await roomOperation(room.code, p1, { type: 'rematch' });
+  expect(next.match.round).toBe(2);
+  expect(next.match.phase).toBe('countdown');
+  expect(next.players.find((p) => p.isBot)?.id).toBe(companion.id);
+  expect(next.players.every((p) => p.count === 0)).toBe(true);
+});
+it('commits a due bot turn even when a human action is rejected', async () => {
+  const room = await createRoom(p1, 'Ada', 'duel');
+  await roomOperation(room.code, p1, { type: 'ready' });
+  await expireSearch(room);
+  await roomOperation(room.code, p1);
+  await transaction(async (db) => {
+    await db.query(
+      `update private.room_states set state=jsonb_set(jsonb_set(jsonb_set(state,'{match,phase}','"active"'),'{match,startsAt}',to_jsonb((extract(epoch from clock_timestamp())*1000-20000)::bigint)),'{botNextGuessAt}','0') where room_id=$1`,
+      [room.id],
+    );
+  });
+  await expect(
+    roomOperation(room.code, p1, {
+      type: 'guess',
+      word: 'ZZZZZ',
+      requestId: randomUUID(),
+      matchId: room.match.id,
+    }),
+  ).rejects.toThrow('dictionary');
+  const view = await roomOperation(room.code, p1);
+  expect(view.players.find((p) => p.isBot)?.count).toBe(1);
+  expect(view.players.find((p) => p.id === p1)?.count).toBe(0);
 });
