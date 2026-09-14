@@ -1,20 +1,20 @@
 @import 'tailwindcss';
 :root {
   --paper: #000000;
-  --ink: #edf6fa;
-  --muted: #a5b6c0;
-  --line: #30434e;
-  --surface: #0c141a;
-  --surface-raised: #14222c;
-  --accent: #83dfff;
-  --accent-hover: #b4edff;
-  --accent-soft: #102b38;
-  --accent-line: #42768b;
-  --on-accent: #03151e;
+  --ink: #eff8f1;
+  --muted: #a9bdae;
+  --line: #324b3a;
+  --surface: #0d1710;
+  --surface-raised: #17271c;
+  --accent: #a3efb1;
+  --accent-hover: #c4f7cd;
+  --accent-soft: #142f1c;
+  --accent-line: #4e855c;
+  --on-accent: #071b0d;
   --green: #267455;
   --yellow: #e7b951;
-  --gray: #455560;
-  --companion: #b5c8ff;
+  --gray: #49594e;
+  --companion: #d3ebac;
   --font-body: 'DM Sans', sans-serif;
   --font-display: 'Space Grotesk', sans-serif;
   color-scheme: dark;
@@ -164,7 +164,7 @@ nav {
 .primary {
   background: var(--accent);
   color: var(--on-accent);
-  box-shadow: 0 4px 24px #83dfff12;
+  box-shadow: 0 4px 24px #a3efb112;
 }
 .primary:hover:not(:disabled) {
   background: var(--accent-hover);
@@ -460,7 +460,7 @@ nav {
 .key.present,
 .present {
   background: var(--yellow);
-  color: #03151e;
+  color: var(--on-accent);
   border-color: var(--yellow);
 }
 .tile.absent,
@@ -539,7 +539,7 @@ nav {
 .tiny-progress i {
   width: 13px;
   height: 16px;
-  background: #687d8a;
+  background: #6e8374;
   border-radius: 2px;
 }
 .preview-caption {
@@ -614,7 +614,7 @@ nav {
   color: var(--ink);
 }
 .how-dialog::backdrop {
-  background: #03090dcc;
+  background: #040d07cc;
   backdrop-filter: blur(4px);
 }
 .dialog-heading {
@@ -852,7 +852,7 @@ nav {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #687d8a;
+  background: #6e8374;
   flex-shrink: 0;
 }
 .player-status i.online {
@@ -1051,7 +1051,7 @@ nav {
   display: grid;
   place-items: center;
   border: 1px solid var(--line);
-  box-shadow: 0 0 0 15px #83dfff14;
+  box-shadow: 0 0 0 15px #a3efb114;
 }
 .countdown-overlay > p {
   font-size: 14px;
@@ -1174,8 +1174,8 @@ nav {
   background: var(--surface);
 }
 .masked-tile.filled {
-  background: #687d8a;
-  border-color: #687d8a;
+  background: #6e8374;
+  border-color: #6e8374;
 }
 .masked-state {
   font-size: 12px;
