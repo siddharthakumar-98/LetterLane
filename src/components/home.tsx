@@ -58,14 +58,90 @@ export default function Home() {
       <Header />
       <main className="home-main">
         <section className="start-panel" aria-labelledby="home-title">
-          <div className="pill">
-            <span className="live-dot" /> WORDPLAY, WITH COMPANY
-          </div>
           <h1 id="home-title">
             Two minds.
             <br />
             <span>One word.</span>
           </h1>
+          <section className="home-preview" aria-label="An example round">
+            <div className="preview-topline">
+              <span className="eyebrow">A GOOD KIND OF COMPETITION</span>
+              <Sparkles size={20} />
+            </div>
+            <div className="preview-game">
+              <div className="preview-player">
+                <div className="avatar sky">Y</div>
+                <div>
+                  <strong>You</strong>
+                  <span>A hunch, then a breakthrough.</span>
+                </div>
+                <span className="player-tag">YOUR LANE</span>
+              </div>
+              <div
+                className="preview-tiles"
+                aria-label="Example: guesses SLATE, CHIME, CHARM"
+              >
+                {[
+                  {
+                    word: 'SLATE',
+                    marks: ['absent', 'absent', 'correct', 'absent', 'absent'],
+                  },
+                  {
+                    word: 'CHIME',
+                    marks: [
+                      'correct',
+                      'correct',
+                      'absent',
+                      'present',
+                      'absent',
+                    ],
+                  },
+                  {
+                    word: 'CHARM',
+                    marks: [
+                      'correct',
+                      'correct',
+                      'correct',
+                      'correct',
+                      'correct',
+                    ],
+                  },
+                ].map((row, i) => (
+                  <div className="tile-row" key={row.word}>
+                    {[...row.word].map((letter, j) => (
+                      <span
+                        className={`tile ${row.marks[j]} ${i === 2 ? 'preview-win' : ''}`}
+                        key={j}
+                      >
+                        {letter}
+                      </span>
+                    ))}
+                  </div>
+                ))}
+              </div>
+              <div className="preview-result">
+                <span className="win-spark">✦</span>
+                <span>
+                  That <em>“I got it!”</em> feeling.
+                </span>
+                <span>3 / 6</span>
+              </div>
+            </div>
+            <div className="three-facts">
+              <div>
+                <strong>05</strong>
+                <span>letters to find</span>
+              </div>
+              <div>
+                <strong>06</strong>
+                <span>chances each</span>
+              </div>
+              <div>
+                <Copy size={24} />
+                <span>one link to play</span>
+              </div>
+            </div>
+          </section>
           <p className="home-description">
             A friendly rivalry. A shared little victory.
             <br />
@@ -172,104 +248,6 @@ export default function Home() {
             <LockKeyhole size={13} /> Just you and your friend. No account
             needed.
           </p>
-        </section>
-        <section className="home-preview" aria-label="An example round">
-          <div className="preview-topline">
-            <span className="eyebrow">A GOOD KIND OF COMPETITION</span>
-            <Sparkles size={20} />
-          </div>
-          <div className="preview-game">
-            <div className="preview-player">
-              <div className="avatar sky">Y</div>
-              <div>
-                <strong>You</strong>
-                <span>A hunch, then a breakthrough.</span>
-              </div>
-              <span className="player-tag">YOUR LANE</span>
-            </div>
-            <div
-              className="preview-tiles"
-              aria-label="Example: guesses SLATE, CHIME, CHARM"
-            >
-              {[
-                {
-                  word: 'SLATE',
-                  marks: ['absent', 'absent', 'correct', 'absent', 'absent'],
-                },
-                {
-                  word: 'CHIME',
-                  marks: ['correct', 'correct', 'absent', 'present', 'absent'],
-                },
-                {
-                  word: 'CHARM',
-                  marks: [
-                    'correct',
-                    'correct',
-                    'correct',
-                    'correct',
-                    'correct',
-                  ],
-                },
-              ].map((row, i) => (
-                <div className="tile-row" key={row.word}>
-                  {[...row.word].map((letter, j) => (
-                    <span
-                      className={`tile ${row.marks[j]} ${i === 2 ? 'preview-win' : ''}`}
-                      key={j}
-                    >
-                      {letter}
-                    </span>
-                  ))}
-                </div>
-              ))}
-            </div>
-            <div className="preview-result">
-              <span className="win-spark">✦</span>
-              <span>
-                That <em>“I got it!”</em> feeling.
-              </span>
-              <span>3 / 6</span>
-            </div>
-          </div>
-          <div className="friend-slip">
-            <div className="avatar periwinkle">F</div>
-            <div>
-              <strong>Your friend</strong>
-              <span>One guess behind. Probably.</span>
-            </div>
-            <div className="tiny-progress" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-              <i />
-              <i />
-            </div>
-            <LockKeyhole size={16} />
-          </div>
-          <div className="preview-caption">
-            <span className="scribble-arrow" aria-hidden="true">
-              ↳
-            </span>
-            <p>
-              See their progress.
-              <br />
-              <strong>Keep your poker face.</strong>
-            </p>
-          </div>
-          <div className="three-facts">
-            <div>
-              <strong>05</strong>
-              <span>letters to find</span>
-            </div>
-            <div>
-              <strong>06</strong>
-              <span>chances each</span>
-            </div>
-            <div>
-              <Copy size={24} />
-              <span>one link to play</span>
-            </div>
-          </div>
         </section>
       </main>
       <Footer />
