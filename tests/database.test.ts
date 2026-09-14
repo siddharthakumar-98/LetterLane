@@ -70,7 +70,9 @@ it('serializes duplicate submissions, concurrent guesses, completion and rematch
   expect(current.players[0].timerEndsAt! - current.match.startsAt!).toBe(
     130000,
   );
-  expect(current.players[1]).not.toHaveProperty('timerEndsAt');
+  expect(current.players[1].timerEndsAt! - current.match.startsAt!).toBe(
+    130000,
+  );
   await expect(
     roomOperation(room.code, p1, {
       ...request,

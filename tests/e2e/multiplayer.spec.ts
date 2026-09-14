@@ -65,7 +65,9 @@ test('two guests create, join, ready, play concurrently, reconnect, finish and r
       friend.getByRole('button', { name: 'I’m ready', exact: true }).click(),
     ]);
     await expect(page.getByText('MAKE YOURSELF READY')).toBeVisible();
-    await expect(page.getByRole('timer')).toHaveText('1:30');
+    await expect(
+      page.getByRole('timer', { name: 'Your time remaining' }),
+    ).toHaveText('1:30');
     await expect(
       page.getByRole('button', { name: 'Submit guess' }),
     ).toBeEnabled();
@@ -108,7 +110,10 @@ test('two guests create, join, ready, play concurrently, reconnect, finish and r
     expect(JSON.stringify(masked)).not.toContain('APPLE');
     expect(masked.match).not.toHaveProperty('answer');
     expect(masked.players[0].timerEndsAt - masked.match.startsAt).toBe(130000);
-    expect(masked.players[1]).not.toHaveProperty('timerEndsAt');
+    expect(masked.players[1].timerEndsAt - masked.match.startsAt).toBe(130000);
+    await expect(
+      page.getByRole('timer', { name: 'Max’s time remaining' }),
+    ).toBeVisible();
     await expect(page.getByText('+40s last guess')).toBeVisible();
     expect(
       (

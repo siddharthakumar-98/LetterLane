@@ -52,9 +52,7 @@ describe('90-second personal clocks with per-tile bonuses', () => {
     act(room, p2, guess(room, 'BLOOM'), 3000);
     expect(deadline(room)).toBe(171000);
     expect(deadline(room, 1)).toBe(91000);
-    expect(projectRoom(room, p2, 4000).players[0]).not.toHaveProperty(
-      'timerEndsAt',
-    );
+    expect(projectRoom(room, p2, 4000).players[0].timerEndsAt).toBe(171000);
     expect(projectRoom(room, p2, 4000).players[0]).not.toHaveProperty(
       'attempts',
     );
@@ -161,4 +159,15 @@ it('settles a delayed read at the logical finish time without inventing a loser 
   act(expired, p1, guess(expired, 'SLATE'), 2000);
   advance(expired, 200000);
   expect(expired.match.endedAt).toBe(131000);
+});
+
+it('shares both clocks and freezes a finished opponent clock without exposing guesses', () => {
+  const room = fixture();
+  act(room, p2, guess(room, 'CRANE'), 2000);
+  const opponent = projectRoom(room, p1, 2100).players[1];
+  expect(opponent.timerEndsAt).toBe(191000);
+  expect(opponent.timerStoppedAt).toBe(2000);
+  expect(opponent).not.toHaveProperty('attempts');
+  expect(projectRoom(room, p1, 2200).players[1].timerStoppedAt).toBe(2000);
+  expect(projectRoom(room, p1, 2200).match).not.toHaveProperty('answer');
 });
