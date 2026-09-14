@@ -67,6 +67,10 @@ it('serializes duplicate submissions, concurrent guesses, completion and rematch
   expect(current.players[0].count).toBe(1);
   expect(current.players[1].count).toBe(1);
   expect(current.players[1]).not.toHaveProperty('attempts');
+  expect(current.players[0].timerEndsAt! - current.match.startsAt!).toBe(
+    130000,
+  );
+  expect(current.players[1]).not.toHaveProperty('timerEndsAt');
   await expect(
     roomOperation(room.code, p1, {
       ...request,
@@ -291,4 +295,37 @@ it('commits a due bot turn even when a human action is rejected', async () => {
   const view = await roomOperation(room.code, p1);
   expect(view.players.find((p) => p.isBot)?.count).toBe(1);
   expect(view.players.find((p) => p.id === p1)?.count).toBe(0);
+});
+
+it('persists timeout results even when a late guess is rejected', async () => {
+  const room = await createRoom(p1, 'Ada', 'duel');
+  await roomOperation(room.code, p2, { type: 'join', name: 'Max' });
+  await transaction((db) =>
+    db.query(
+      `update private.room_states set state=jsonb_set(jsonb_set(state,'{match,phase}','"active"'),'{match,startsAt}',to_jsonb((extract(epoch from clock_timestamp())*1000-91000)::bigint)) where room_id=$1`,
+      [room.id],
+    ),
+  );
+  await expect(
+    roomOperation(room.code, p1, {
+      type: 'guess',
+      word: 'CRANE',
+      requestId: randomUUID(),
+      matchId: room.match.id,
+    }),
+  ).rejects.toThrow('ended');
+  const [a, b] = await Promise.all([
+    roomOperation(room.code, p1),
+    roomOperation(room.code, p2),
+  ]);
+  expect(a.match.phase).toBe('complete');
+  expect(a.match.outcome).toBe('draw');
+  expect(a.players.every((p) => p.count === 0 && p.timedOut)).toBe(true);
+  expect(b.match).toEqual(a.match);
+  await Promise.all([
+    roomOperation(room.code, p1, { type: 'rematch' }),
+    roomOperation(room.code, p2, { type: 'rematch' }),
+  ]);
+  const next = await roomOperation(room.code, p1);
+  expect(next.players[0].timerEndsAt! - next.match.startsAt!).toBe(90000);
 });

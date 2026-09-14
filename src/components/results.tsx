@@ -50,7 +50,7 @@ export function Results({
           : room.match.outcome === 'draw'
             ? 'Same score. Shared bragging rights.'
             : room.match.outcome === 'team-loss'
-              ? 'Six chances each, and a fresh word awaits.'
+              ? 'Out of time or tries. A fresh word awaits.'
               : 'One little word. Well played.'}
       </p>
       <div className="answer-reveal">
@@ -88,7 +88,13 @@ export function Results({
                   {p.count}
                   <span> / 6</span>
                 </strong>
-                <small>{p.solved ? 'Solved' : 'Guesses'}</small>
+                <small>
+                  {p.solved
+                    ? 'Solved'
+                    : p.timedOut
+                      ? 'Time ran out'
+                      : 'Guesses'}
+                </small>
               </div>
               <div>
                 <strong>

@@ -1,5 +1,6 @@
 import { scoreGuess } from './scoring';
 import { validateGuess } from './validation';
+import { roundDeadline } from './round-clock';
 import {
   GameError,
   type Action,
@@ -13,6 +14,20 @@ export const COUNTDOWN_MS = 3000;
 export const MAX_ATTEMPTS = 6;
 export const solved = (p: Pick<Player, 'attempts'>) =>
   p.attempts.some((a) => a.marks.every((m) => m === 'correct'));
+export function outOfTime(room: Room, player: Player, now: number) {
+  if (
+    room.match.phase === 'lobby' ||
+    solved(player) ||
+    player.attempts.length >= MAX_ATTEMPTS
+  )
+    return false;
+  const deadline = roundDeadline(room.match.startsAt, player.attempts);
+  return deadline !== null && (room.match.endedAt ?? now) >= deadline;
+}
+const finished = (room: Room, player: Player, now: number) =>
+  solved(player) ||
+  player.attempts.length >= MAX_ATTEMPTS ||
+  outOfTime(room, player, now);
 function compare(a: number[], b: number[]) {
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i];
   return 0;
@@ -67,12 +82,26 @@ function finish(room: Room, now: number) {
 export function advance(room: Room, now: number) {
   if (room.match.phase === 'countdown' && now >= room.match.startsAt!)
     room.match.phase = 'active';
+  if (room.match.phase !== 'active') return;
+  const deadlines: number[] = [];
+  if (room.match.deadline !== null && now >= room.match.deadline)
+    deadlines.push(room.match.deadline);
   if (
-    room.match.phase === 'active' &&
-    room.match.deadline !== null &&
-    now >= room.match.deadline
-  )
-    finish(room, now);
+    room.players.length === 2 &&
+    room.players.every((p) => finished(room, p, now))
+  ) {
+    deadlines.push(
+      Math.max(
+        ...room.players.map((p) =>
+          solved(p) || p.attempts.length >= MAX_ATTEMPTS
+            ? room.match.startsAt! + p.attempts.at(-1)!.elapsedMs
+            : roundDeadline(room.match.startsAt, p.attempts)!,
+        ),
+      ),
+    );
+  }
+  // A sleeping tab may discover the result later; retain the actual finish time.
+  if (deadlines.length) finish(room, Math.min(...deadlines));
 }
 export function applyAction(
   room: Room,
@@ -138,6 +167,10 @@ export function applyAction(
       );
     if (solved(player) || player.attempts.length >= MAX_ATTEMPTS)
       throw new GameError('You have finished this round.');
+    if (outOfTime(room, player, now))
+      throw new GameError(
+        'Your time is up. Wait for the other player to finish.',
+      );
     const word = validateGuess(action.word, allowed);
     if (player.attempts.some((a) => a.word === word))
       throw new GameError('You have already tried that word.', 422);
@@ -151,7 +184,7 @@ export function applyAction(
       room.match.deadline = now + SYNC_WINDOW_MS;
     if (
       (room.mode === 'coop' && solved(player)) ||
-      room.players.every((p) => solved(p) || p.attempts.length >= MAX_ATTEMPTS)
+      room.players.every((p) => finished(room, p, now))
     )
       finish(room, now);
   }
@@ -204,7 +237,16 @@ export function projectRoom(
       ...p,
       count: attempts.length,
       solved: solved({ attempts }),
-      ...(p.id === playerId || match.phase === 'complete' ? { attempts } : {}),
+      timedOut: outOfTime(room, { ...p, attempts }, now),
+      ...(p.id === playerId || match.phase === 'complete'
+        ? {
+            attempts,
+            timerEndsAt:
+              match.phase === 'lobby'
+                ? null
+                : roundDeadline(match.startsAt, attempts),
+          }
+        : {}),
     })),
   };
 }

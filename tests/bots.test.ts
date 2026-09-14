@@ -241,3 +241,44 @@ describe('bot strategy has only its own feedback', () => {
     }
   });
 });
+
+it('a bot with an expired clock cannot take a due turn or block the human from finishing', () => {
+  const room = started();
+  applyAction(
+    room,
+    p1,
+    {
+      type: 'guess',
+      word: 'SLATE',
+      requestId: randomUUID(),
+      matchId: room.match.id,
+    },
+    50000,
+    ALLOWED_WORDS,
+    () => 'BLOOM',
+    randomUUID,
+  );
+  // Bot has no bonuses, human earned 40s. Simulate reopening after a long disconnect.
+  const expiredAt = room.match.startsAt! + 90000;
+  advanceBots(room, expiredAt, services);
+  expect(bot(room).attempts).toHaveLength(0);
+  expect(room.botNextGuessAt).toBeNull();
+  expect(room.match.phase).toBe('active');
+  applyAction(
+    room,
+    p1,
+    {
+      type: 'guess',
+      word: 'CRANE',
+      requestId: randomUUID(),
+      matchId: room.match.id,
+    },
+    expiredAt + 1,
+    ALLOWED_WORDS,
+    () => 'BLOOM',
+    randomUUID,
+  );
+  advanceBots(room, expiredAt + 1, services);
+  expect(room.match.winnerId).toBe(p1);
+  expect(bot(room).rematch).toBe(true);
+});
