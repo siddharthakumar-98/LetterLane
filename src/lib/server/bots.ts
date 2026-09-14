@@ -1,7 +1,13 @@
 import 'server-only';
 import { randomInt, randomUUID } from 'node:crypto';
 import { BOT_WAIT_MS } from '../game/matchmaking';
-import { advance, applyAction, MAX_ATTEMPTS, solved } from '../game/rules';
+import {
+  advance,
+  applyAction,
+  MAX_ATTEMPTS,
+  solved,
+  outOfTime,
+} from '../game/rules';
 import type { Action, Room } from '../game/types';
 import { ALLOWED_WORDS, ANSWERS, pickAnswer } from './words';
 import { chooseBotGuess } from './bot-strategy';
@@ -56,7 +62,14 @@ export function advanceBots(room: Room, now: number, services = production) {
   };
   readyForRematch();
   if (room.match.phase !== 'countdown' && room.match.phase !== 'active') return;
-  if (solved(bot) || bot.attempts.length >= MAX_ATTEMPTS) return;
+  if (
+    solved(bot) ||
+    bot.attempts.length >= MAX_ATTEMPTS ||
+    outOfTime(room, bot, now)
+  ) {
+    room.botNextGuessAt = null;
+    return;
+  }
   if (room.botNextGuessAt == null) {
     room.botNextGuessAt =
       Math.max(now, room.match.startsAt!) + services.thinkMs();

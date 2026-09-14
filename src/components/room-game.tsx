@@ -16,7 +16,9 @@ import {
 import { Header, Footer } from './chrome';
 import { Board, MaskedBoard } from './board';
 import { Keyboard } from './keyboard';
-import { Results, formatTime } from './results';
+import { Results } from './results';
+import { RoundTimer } from './round-timer';
+import { INITIAL_TIME_MS, timeBonus } from '@/lib/game/round-clock';
 import { useRoom } from '@/lib/client/use-room';
 import type { PlayerView, RoomView } from '@/lib/game/types';
 import { nameSchema } from '@/lib/game/validation';
@@ -182,6 +184,10 @@ function Lobby({
           </span>
         </div>
         <p className="lobby-tip">
+          Start with 1:30 each. Every green or yellow tile adds 20 seconds to
+          your own clock. Three matching tiles? One extra minute.
+        </p>
+        <p className="lobby-tip">
           {room.mode === 'coop'
             ? 'In co-op, a solve from either player is a win for the team.'
             : 'In a duel, your first instinct might just beat their best guess.'}
@@ -216,10 +222,22 @@ export function RoomGame({ code }: { code: string }) {
   const me = room?.players.find((p) => p.id === room.selfId);
   const opponent = room?.players.find((p) => p.id !== room.selfId);
   const phase = room?.match.phase;
+  const lastAttempt = me?.attempts?.at(-1);
+  const clockStopped = me?.solved || me?.count === 6;
+  const clockNow = clockStopped
+    ? (room?.match.startsAt ?? 0) + (lastAttempt?.elapsedMs ?? 0)
+    : Math.max(now, room?.serverTime ?? 0);
+  const remainingMs =
+    phase === 'countdown'
+      ? INITIAL_TIME_MS
+      : Math.max(0, (me?.timerEndsAt ?? 0) - clockNow);
+  const timeUp =
+    me?.timedOut || (phase === 'active' && !clockStopped && remainingMs === 0);
   const canGuess =
     connected &&
     phase === 'active' &&
     !me?.solved &&
+    !timeUp &&
     (me?.count ?? 6) < 6 &&
     !busy;
   const copy = async () => {
@@ -415,18 +433,11 @@ export function RoomGame({ code }: { code: string }) {
           <>
             <div className="match-header">
               <PlayerBadge player={me} self now={now} />
-              <div className="match-clock">
-                <span>
-                  {room.mode === 'coop' ? (
-                    <HeartHandshake size={18} />
-                  ) : (
-                    <Swords size={18} />
-                  )}
-                </span>
-                <strong>
-                  {formatTime(Math.max(0, now - (room.match.startsAt ?? now)))}
-                </strong>
-              </div>
+              <RoundTimer
+                remainingMs={remainingMs}
+                bonusMs={lastAttempt ? timeBonus(lastAttempt.marks) : 0}
+                running={phase === 'active' && !clockStopped}
+              />
               <PlayerBadge player={opponent} now={now} />
             </div>
             {opponent &&
@@ -465,6 +476,11 @@ export function RoomGame({ code }: { code: string }) {
                       Your six are in. Waiting for{' '}
                       {opponent?.isBot ? 'Pip' : 'your friend'}…
                     </span>
+                  ) : timeUp ? (
+                    <span>
+                      Your time is up. Waiting for{' '}
+                      {opponent?.isBot ? 'Pip' : 'your friend'}…
+                    </span>
                   ) : phase === 'countdown' ? (
                     'Both boards open at the same time.'
                   ) : (
@@ -496,9 +512,11 @@ export function RoomGame({ code }: { code: string }) {
                   <span>
                     {opponent?.solved
                       ? 'A finish is being checked…'
-                      : opponent?.count === 6
-                        ? 'All six guesses are in.'
-                        : 'A little thinking. A little suspense.'}
+                      : opponent?.timedOut
+                        ? 'Their time is up. You can keep guessing.'
+                        : opponent?.count === 6
+                          ? 'All six guesses are in.'
+                          : 'A little thinking. A little suspense.'}
                   </span>
                 </div>
                 <div className="arena-legend">

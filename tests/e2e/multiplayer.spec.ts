@@ -65,6 +65,7 @@ test('two guests create, join, ready, play concurrently, reconnect, finish and r
       friend.getByRole('button', { name: 'I’m ready', exact: true }).click(),
     ]);
     await expect(page.getByText('MAKE YOURSELF READY')).toBeVisible();
+    await expect(page.getByRole('timer')).toHaveText('1:30');
     await expect(
       page.getByRole('button', { name: 'Submit guess' }),
     ).toBeEnabled();
@@ -106,6 +107,9 @@ test('two guests create, join, ready, play concurrently, reconnect, finish and r
     );
     expect(JSON.stringify(masked)).not.toContain('APPLE');
     expect(masked.match).not.toHaveProperty('answer');
+    expect(masked.players[0].timerEndsAt - masked.match.startsAt).toBe(130000);
+    expect(masked.players[1]).not.toHaveProperty('timerEndsAt');
+    await expect(page.getByText('+40s last guess')).toBeVisible();
     expect(
       (
         await new AxeBuilder({ page })
@@ -119,6 +123,7 @@ test('two guests create, join, ready, play concurrently, reconnect, finish and r
     });
     await page.reload();
     await expect(page.getByLabel(/Guess 1: S absent/)).toBeVisible();
+    await expect(page.getByText('+40s last guess')).toBeVisible();
     await friendContext.setOffline(true);
     await expect(
       friend.getByText(/Connection interrupted. Reconnecting/),
@@ -165,6 +170,7 @@ test('two guests create, join, ready, play concurrently, reconnect, finish and r
       code,
     );
     expect(next.match.round).toBe(2);
+    expect(next.players[0].timerEndsAt - next.match.startsAt).toBe(90000);
     expect(next.players.every((p: { count: number }) => p.count === 0)).toBe(
       true,
     );

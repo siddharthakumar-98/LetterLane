@@ -33,7 +33,7 @@ No credentials are needed for local mode. Data persists in `.letterlane/` across
 
 If a room has only its creator after **45 seconds**, **Pip** fills the second seat. The lobby shows a countdown and clearly labels Pip as a bot in the lobby, match header, and results. The creator still chooses **I'm ready**; if already ready, the normal three-second countdown starts when Pip joins. This works in duel and co-op. Invite friends before the seat fills to play the original two-human game.
 
-The timer starts at room creation, uses the database clock, and survives refreshes. Two-human rooms never receive a bot, including when a human disconnects. Once Pip occupies the seat, it counts toward the existing two-player capacity; a later invitation cannot displace it. If a human join obtains the lock before bot assignment, that human gets the seat.
+The 45-second bot search starts at room creation, uses the database clock, and survives refreshes. Two-human rooms never receive a bot, including when a human disconnects. Once Pip occupies the seat, it counts toward the existing two-player capacity; a later invitation cannot displace it. If a human join obtains the lock before bot assignment, that human gets the seat.
 
 Pip makes one guess every **8–12 seconds**, using only its own evaluated guesses and the existing answer vocabulary. Its strategy is never given the actual answer or the human's guesses. It follows the same scoring, six-attempt limit, finish window, and tie-breaks. Pip automatically agrees to rematches; the human still decides whether to start another round.
 
@@ -96,15 +96,19 @@ No cloud account or credentials were supplied for this implementation, so hosted
 
 ## Rules and product decisions
 
+- **Personal clocks:** Each player (including Pip) starts with **1:30** after the countdown. Each green or yellow tile in an accepted guess adds **20 seconds** to that player's clock. Two matches earn 40 seconds; three earn one minute. Duplicate letters earn time only when scoring marks those occurrences green/yellow. There is no extra time for gray tiles, invalid guesses, repeated words, or retried requests.
+- Clocks keep running during disconnects. At zero a player cannot submit more guesses; the other may continue until a solve, timeout, or six attempts. If neither solves, the existing points comparison applies; co-op ends in a team loss when both are finished. Rematches reset clocks and bonuses.
+- Deadlines are derived from the shared database start time and saved evaluated guesses, under the existing room lock. Only the player's own deadline is returned during play to keep opponent matching-letter totals private. Polls, heartbeats, and actions settle expired rounds; disconnected rooms settle on their next request. No background Vercel timer or new Supabase migration/environment setting is needed. Previously started rooms use the same rule against their saved start time and guesses when first accessed after deployment.
+
 - Both players get the same hidden five-letter word and six guesses each, with a shared three-second countdown.
-- **Duel:** first solve opens a **750 ms** synchronization window. Solvers within it are compared by accepted guess count, then server-recorded elapsed milliseconds. Exactly equal results draw. Once a player is solved or out of attempts, they cannot submit again. If both are done, the server resolves immediately.
+- **Duel:** first solve opens a **750 ms** synchronization window. Solvers within it are compared by accepted guess count, then server-recorded elapsed milliseconds. Exactly equal results draw. Once a player is solved, out of time, or out of attempts, they cannot submit again. If both are done, the server resolves immediately.
 - When neither solves, compare each player's best single guess: (1) most correctly identified letter occurrences, including misplaced ones, (2) earliest attempt that reached that maximum, (3) most exact positions, (4) most misplaced letters. If all values match, draw. Duplicate letter occurrences are counted only up to the occurrences in the answer. This explicitly defines “fewest guesses required to reveal the most correct letters.”
 - **Co-op:** either solve ends the match with a team win. If both exhaust six attempts, the team loses. Letters remain private during play in both modes.
 - A repeated accepted word is rejected without consuming a turn. Replaying the same request UUID with the same payload returns the saved state; reusing that UUID with different content is rejected. A match UUID prevents late requests from leaking into a rematch.
 - In a bot room, Pip automatically supplies its rematch vote; a human vote remains required.
 - Two rematch votes immediately schedule a new three-second countdown. The room and guest identities persist, but the answer always changes.
 - Rooms expire after 24 hours. Starting a rematch renews the room. A 15-second missing heartbeat marks a player disconnected; it never forfeits or destroys their game. The same browser profile can rejoin until expiration. Clearing cookies/storage or using a different profile creates a different guest and cannot reclaim an occupied seat.
-- There is no inactivity-forfeit timer. An absent opponent can return, or you can start another room. An unresolved room eventually expires.
+- Disconnecting does not immediately forfeit the match. Personal clocks continue to run, and an absent player can return while time remains. The server settles expired clocks on the next room request.
 
 ## Architecture
 

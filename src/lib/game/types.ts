@@ -41,6 +41,9 @@ export type Room = {
 export type PlayerView = Omit<Player, 'attempts'> & {
   count: number;
   solved: boolean;
+  timedOut: boolean;
+  /** Hidden from the opponent during play, since bonuses disclose matching tiles. */
+  timerEndsAt?: number | null;
   attempts?: Attempt[];
 };
 export type RoomView = Omit<Room, 'players' | 'match' | 'botNextGuessAt'> & {

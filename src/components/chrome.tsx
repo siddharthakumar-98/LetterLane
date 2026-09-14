@@ -70,6 +70,15 @@ export function HowToPlay() {
           </div>
         </div>
         <p>
+          <strong>Beat the clock:</strong> You each start with 1:30 after the
+          countdown. Every green or yellow tile in an accepted guess adds 20
+          seconds to your own timer. Three matching tiles earn one minute. Gray
+          tiles earn no time, and repeated words earn no bonus. Your clock keeps
+          running if you disconnect. When it reaches zero, your guesses stop;
+          the other player can finish. If neither solves, the usual scoring
+          decides the result.
+        </p>
+        <p>
           <strong>Duel:</strong> the first solver wins. Solves within 750 ms are
           compared by guesses used, then server-recorded time. If neither
           solves, we compare the most letters revealed in one guess, how early
