@@ -238,15 +238,15 @@ export function projectRoom(
       count: attempts.length,
       solved: solved({ attempts }),
       timedOut: outOfTime(room, { ...p, attempts }, now),
-      ...(p.id === playerId || match.phase === 'complete'
-        ? {
-            attempts,
-            timerEndsAt:
-              match.phase === 'lobby'
-                ? null
-                : roundDeadline(match.startsAt, attempts),
-          }
-        : {}),
+      timerEndsAt:
+        match.phase === 'lobby'
+          ? null
+          : roundDeadline(match.startsAt, attempts),
+      timerStoppedAt:
+        solved({ attempts }) || attempts.length >= MAX_ATTEMPTS
+          ? match.startsAt! + attempts.at(-1)!.elapsedMs
+          : match.endedAt,
+      ...(p.id === playerId || match.phase === 'complete' ? { attempts } : {}),
     })),
   };
 }

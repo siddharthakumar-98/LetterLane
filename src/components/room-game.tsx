@@ -224,13 +224,15 @@ export function RoomGame({ code }: { code: string }) {
   const phase = room?.match.phase;
   const lastAttempt = me?.attempts?.at(-1);
   const clockStopped = me?.solved || me?.count === 6;
-  const clockNow = clockStopped
-    ? (room?.match.startsAt ?? 0) + (lastAttempt?.elapsedMs ?? 0)
-    : Math.max(now, room?.serverTime ?? 0);
-  const remainingMs =
+  const displayNow = Math.max(now, room?.serverTime ?? 0);
+  const remainingFor = (player: PlayerView | undefined) =>
     phase === 'countdown'
       ? INITIAL_TIME_MS
-      : Math.max(0, (me?.timerEndsAt ?? 0) - clockNow);
+      : Math.max(
+          0,
+          (player?.timerEndsAt ?? 0) - (player?.timerStoppedAt ?? displayNow),
+        );
+  const remainingMs = remainingFor(me);
   const timeUp =
     me?.timedOut || (phase === 'active' && !clockStopped && remainingMs === 0);
   const canGuess =
@@ -433,11 +435,6 @@ export function RoomGame({ code }: { code: string }) {
           <>
             <div className="match-header">
               <PlayerBadge player={me} self now={now} />
-              <RoundTimer
-                remainingMs={remainingMs}
-                bonusMs={lastAttempt ? timeBonus(lastAttempt.marks) : 0}
-                running={phase === 'active' && !clockStopped}
-              />
               <PlayerBadge player={opponent} now={now} />
             </div>
             {opponent &&
@@ -449,6 +446,28 @@ export function RoomGame({ code }: { code: string }) {
                 </p>
               )}
             <div className="arena">
+              <aside className="arena-timers" aria-label="Round timers">
+                <RoundTimer
+                  remainingMs={remainingMs}
+                  bonusMs={lastAttempt ? timeBonus(lastAttempt.marks) : 0}
+                  running={phase === 'active' && !clockStopped}
+                />
+                <RoundTimer
+                  remainingMs={remainingFor(opponent)}
+                  bonusMs={0}
+                  label={
+                    opponent?.isBot
+                      ? `${opponent.name} · BOT`
+                      : `${opponent?.name ?? 'Opponent'}’s time`
+                  }
+                  running={
+                    phase === 'active' &&
+                    !opponent?.solved &&
+                    opponent?.count !== 6
+                  }
+                  announce={false}
+                />
+              </aside>
               <section className="your-lane" aria-labelledby="your-lane-title">
                 <div className="lane-heading">
                   <h1 id="your-lane-title">Your lane</h1>
