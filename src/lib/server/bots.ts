@@ -8,28 +8,33 @@ import {
   solved,
   outOfTime,
 } from '../game/rules';
-import type { Action, Room } from '../game/types';
+import type { Action, Room, BotDifficulty } from '../game/types';
+import { BOT_PROFILES } from '../game/bot-difficulty';
 import { ALLOWED_WORDS, ANSWERS, pickAnswer } from './words';
 import { chooseBotGuess } from './bot-strategy';
 
-export const BOT_THINK_MIN_MS = 8_000;
-export const BOT_THINK_MAX_MS = 12_000;
+export const BOT_THINK_MIN_MS = BOT_PROFILES.hard.thinkMinMs;
+export const BOT_THINK_MAX_MS = BOT_PROFILES.hard.thinkMaxMs;
 export type BotServices = {
   id: () => string;
   randomIndex: (length: number) => number;
-  thinkMs: () => number;
+  thinkMs: (difficulty: BotDifficulty) => number;
   nextAnswer: (previous: string) => string;
 };
 const production: BotServices = {
   id: randomUUID,
   randomIndex: randomInt,
-  thinkMs: () => randomInt(BOT_THINK_MIN_MS, BOT_THINK_MAX_MS + 1),
+  thinkMs: (difficulty) => {
+    const profile = BOT_PROFILES[difficulty];
+    return randomInt(profile.thinkMinMs, profile.thinkMaxMs + 1);
+  },
   nextAnswer: pickAnswer,
 };
 
 /** Call only under the room's DB row lock. No timers or jobs survive a request. */
 export function advanceBots(room: Room, now: number, services = production) {
   if (now >= room.expiresAt) return;
+  const difficulty = room.botDifficulty ?? 'hard';
   advance(room, now);
   const act = (id: string, action: Action) =>
     applyAction(
@@ -48,7 +53,7 @@ export function advanceBots(room: Room, now: number, services = production) {
     now >= room.createdAt + BOT_WAIT_MS
   ) {
     const id = services.id();
-    act(id, { type: 'join', name: 'Pip' });
+    act(id, { type: 'join', name: BOT_PROFILES[difficulty].name });
     room.players.find((player) => player.id === id)!.isBot = true;
     act(id, { type: 'ready' });
   }
@@ -72,10 +77,15 @@ export function advanceBots(room: Room, now: number, services = production) {
   }
   if (room.botNextGuessAt == null) {
     room.botNextGuessAt =
-      Math.max(now, room.match.startsAt!) + services.thinkMs();
+      Math.max(now, room.match.startsAt!) + services.thinkMs(difficulty);
   }
   if (room.match.phase !== 'active' || now < room.botNextGuessAt) return;
-  const word = chooseBotGuess(bot.attempts, ANSWERS, services.randomIndex);
+  const word = chooseBotGuess(
+    bot.attempts,
+    ANSWERS,
+    services.randomIndex,
+    difficulty,
+  );
   act(bot.id, {
     type: 'guess',
     word,
@@ -83,6 +93,6 @@ export function advanceBots(room: Room, now: number, services = production) {
     matchId: room.match.id,
   });
   // No catch-up burst or backdated times after a disconnect or sleeping tab.
-  room.botNextGuessAt = now + services.thinkMs();
+  room.botNextGuessAt = now + services.thinkMs(difficulty);
   readyForRematch();
 }

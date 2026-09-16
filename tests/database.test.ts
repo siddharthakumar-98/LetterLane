@@ -331,3 +331,30 @@ it('persists timeout results even when a late guess is rejected', async () => {
   const next = await roomOperation(room.code, p1);
   expect(next.players[0].timerEndsAt! - next.match.startsAt!).toBe(90000);
 });
+
+it.each([
+  ['easy', 'Pipsqueak'],
+  ['medium', 'Pipper'],
+  ['hard', 'Pip'],
+] as const)(
+  'stores %s difficulty and assigns the matching companion',
+  async (difficulty, name) => {
+    const owner = randomUUID();
+    const created = await createRoom(owner, 'Solo', 'duel', difficulty);
+    expect(created.botDifficulty).toBe(difficulty);
+    expect((await roomOperation(created.code, owner)).botDifficulty).toBe(
+      difficulty,
+    );
+    await expireSearch(created);
+    const assigned = await roomOperation(created.code, owner);
+    expect(assigned.players.find((p) => p.isBot)).toMatchObject({
+      name,
+      ready: true,
+    });
+    expect(assigned.botDifficulty).toBe(difficulty);
+    expect(
+      (await roomOperation(created.code, owner)).players.find((p) => p.isBot)
+        ?.name,
+    ).toBe(name);
+  },
+);

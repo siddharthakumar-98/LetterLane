@@ -92,8 +92,10 @@ export function HowToPlay() {
         </p>
         <p>
           <strong>Playing solo?</strong> If no second player joins your room
-          after 45 seconds, Pip, a clearly labeled bot, fills the open seat. It
-          plays from its own clues and is always ready for a rematch.
+          after 45 seconds, your chosen bot fills the open seat: Pipsqueak
+          (Easy), Pipper (Medium), or Pip (Hard). Easier bots take longer
+          between guesses and use simpler word choices. Each plays from its own
+          clues and is always ready for a rematch.
         </p>
         <button
           className="button primary full"

@@ -15,7 +15,11 @@ export const codeSchema = z
   .toUpperCase()
   .regex(/^[A-HJ-NP-Z2-9]{6}$/, 'Enter the six-character room code.');
 export const createSchema = z
-  .object({ name: nameSchema, mode: z.enum(['duel', 'coop']) })
+  .object({
+    name: nameSchema,
+    mode: z.enum(['duel', 'coop']),
+    botDifficulty: z.enum(['easy', 'medium', 'hard']).default('hard'),
+  })
   .strict();
 export const actionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('join'), name: nameSchema }).strict(),

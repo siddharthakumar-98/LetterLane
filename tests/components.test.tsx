@@ -84,3 +84,33 @@ it('labels bot identities visibly', () => {
   render(<BotTag />);
   expect(screen.getByText('BOT')).toBeTruthy();
 });
+
+it.each([
+  ['easy', 'Pipsqueak', 'Easy'],
+  ['medium', 'Pipper', 'Medium'],
+  ['hard', 'Pip', 'Hard'],
+] as const)(
+  'announces the selected %s companion before and after arrival',
+  (difficulty, name, label) => {
+    const room = fixture();
+    room.botDifficulty = difficulty;
+    room.match.phase = 'lobby';
+    room.players = room.players.slice(0, 1);
+    const view = projectRoom(room, p1, 1000);
+    const { rerender } = render(<BotNotice room={view} now={11000} />);
+    expect(screen.getByText(`${name} · ${label} difficulty`)).toBeTruthy();
+    view.players.push({ ...view.players[0], id: 'bot', name, isBot: true });
+    rerender(<BotNotice room={view} now={46000} />);
+    expect(screen.getByRole('status').textContent).toContain(
+      `${name} is your bot opponent.`,
+    );
+    expect(screen.getByRole('status').textContent).toContain(
+      `${label} difficulty.`,
+    );
+    view.mode = 'coop';
+    rerender(<BotNotice room={view} now={46000} />);
+    expect(screen.getByRole('status').textContent).toContain(
+      `${name} is your bot teammate.`,
+    );
+  },
+);

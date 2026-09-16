@@ -227,6 +227,7 @@ export function projectRoom(
     id: room.id,
     code: room.code,
     mode: room.mode,
+    botDifficulty: room.botDifficulty ?? 'hard',
     revision: room.revision,
     createdAt: room.createdAt,
     expiresAt: room.expiresAt,

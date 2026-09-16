@@ -1,6 +1,7 @@
 import { Bot, Timer } from 'lucide-react';
 import { BOT_WAIT_MS } from '@/lib/game/matchmaking';
 import type { RoomView } from '@/lib/game/types';
+import { BOT_PROFILES } from '@/lib/game/bot-difficulty';
 
 export function BotTag() {
   return (
@@ -11,6 +12,7 @@ export function BotTag() {
 }
 
 export function BotNotice({ room, now }: { room: RoomView; now: number }) {
+  const profile = BOT_PROFILES[room.botDifficulty ?? 'hard'];
   const bot = room.players.find((player) => player.isBot);
   if (bot)
     return (
@@ -19,10 +21,13 @@ export function BotNotice({ room, now }: { room: RoomView; now: number }) {
         <div>
           <strong>
             {room.mode === 'coop'
-              ? 'Pip is your bot teammate.'
-              : 'Pip is your bot opponent.'}
+              ? `${bot.name} is your bot teammate.`
+              : `${bot.name} is your bot opponent.`}
           </strong>
-          <p>Same six chances. Its own clues. Ready when you are.</p>
+          <p>
+            {profile.label} difficulty. Same six chances. Its own clues. Ready
+            when you are.
+          </p>
         </div>
       </div>
     );
@@ -46,6 +51,9 @@ export function BotNotice({ room, now }: { room: RoomView; now: number }) {
         <span className="sr-only">
           A bot joins after 45 seconds if no second player arrives.
         </span>
+        <p>
+          {profile.name} · {profile.label} difficulty
+        </p>
       </div>
     </div>
   );
