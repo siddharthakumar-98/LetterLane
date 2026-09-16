@@ -7,6 +7,7 @@ test('a lone player gets a bot after the real 45-second wait, plays, reconnects 
 }, testInfo) => {
   await page.goto('/');
   await page.getByLabel('What should we call you?').fill('Solo');
+  await page.getByRole('radio', { name: 'Hard Pip', exact: true }).check();
   await page.getByRole('button', { name: 'Create a private room' }).click();
   await expect(page).toHaveURL(/\/room\/[A-Z2-9]{6}/);
   const code = page.url().split('/').at(-1)!;
@@ -98,4 +99,50 @@ test('a lone player gets a bot after the real 45-second wait, plays, reconnects 
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
+});
+
+test('difficulty selection is accessible and survives room creation and reload', async ({
+  page,
+}, testInfo) => {
+  for (const [difficulty, name, label] of [
+    ['easy', 'Pipsqueak', 'Easy'],
+    ['medium', 'Pipper', 'Medium'],
+    ['hard', 'Pip', 'Hard'],
+  ] as const) {
+    await page.goto('/');
+    await expect(
+      page.getByRole('radio', { name: 'Medium Pipper', exact: true }),
+    ).toBeChecked();
+    await page.getByLabel('What should we call you?').fill('Solo');
+    await page
+      .getByRole('radio', { name: `${label} ${name}`, exact: true })
+      .check();
+    if (difficulty === 'medium') {
+      await page.getByRole('radio', { name: /Better together/ }).check();
+      expect(
+        (
+          await new AxeBuilder({ page })
+            .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+            .analyze()
+        ).violations,
+      ).toEqual([]);
+      await page.screenshot({
+        path: testInfo.outputPath('difficulty-picker.png'),
+        fullPage: true,
+      });
+    }
+    await page.getByRole('button', { name: 'Create a private room' }).click();
+    await expect(page).toHaveURL(/\/room\/[A-Z2-9]{6}/);
+    await expect(page.getByText(`${name} · ${label} difficulty`)).toBeVisible();
+    await page.reload();
+    await expect(page.getByText(`${name} · ${label} difficulty`)).toBeVisible();
+    const snapshot = await page.evaluate(async () => {
+      const code = location.pathname.split('/').at(-1);
+      return (await fetch(`/api/rooms/${code}`)).json();
+    });
+    expect(snapshot.botDifficulty).toBe(difficulty);
+    expect(snapshot.mode).toBe(difficulty === 'medium' ? 'coop' : 'duel');
+    expect(snapshot.players).toHaveLength(1);
+    expect(snapshot.match).not.toHaveProperty('answer');
+  }
 });

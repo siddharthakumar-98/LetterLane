@@ -282,3 +282,103 @@ it('a bot with an expired clock cannot take a due turn or block the human from f
   expect(room.match.winnerId).toBe(p1);
   expect(bot(room).rematch).toBe(true);
 });
+
+describe('bot difficulty', () => {
+  it.each([
+    ['easy', 'Pipsqueak', 26_000, 34_000],
+    ['medium', 'Pipper', 16_000, 22_000],
+    ['hard', 'Pip', 8_000, 12_000],
+  ] as const)(
+    'persists %s identity and pacing through reload and rematch',
+    (difficulty, name, minMs, maxMs) => {
+      const room = waiting();
+      room.botDifficulty = difficulty;
+      human(room, 'ready', 1000);
+      // Exercise the real random scheduler, including its first and subsequent turns.
+      advanceBots(room, 46000);
+      expect(bot(room).name).toBe(name);
+      expect(
+        room.botNextGuessAt! - room.match.startsAt!,
+      ).toBeGreaterThanOrEqual(minMs);
+      expect(room.botNextGuessAt! - room.match.startsAt!).toBeLessThanOrEqual(
+        maxMs,
+      );
+      const restored = JSON.parse(JSON.stringify(room)) as Room;
+      const due = restored.botNextGuessAt!;
+      advanceBots(restored, due - 1);
+      expect(bot(restored).attempts).toHaveLength(0);
+      advanceBots(restored, due);
+      expect(bot(restored).attempts).toHaveLength(1);
+      expect(restored.botNextGuessAt! - due).toBeGreaterThanOrEqual(minMs);
+      expect(restored.botNextGuessAt! - due).toBeLessThanOrEqual(maxMs);
+      const view = projectRoom(restored, p1, due);
+      expect(view.botDifficulty).toBe(difficulty);
+      expect(view.players.find((p) => p.isBot)).not.toHaveProperty('attempts');
+      expect(view).not.toHaveProperty('botNextGuessAt');
+      expect(view.match).not.toHaveProperty('answer');
+      restored.match.phase = 'complete';
+      advanceBots(restored, due + 1);
+      human(restored, 'rematch', due + 2);
+      advanceBots(restored, due + 2);
+      expect(restored.botDifficulty).toBe(difficulty);
+      expect(bot(restored).name).toBe(name);
+      expect(bot(restored).id).toBe(bot(room).id);
+      expect(
+        restored.botNextGuessAt! - restored.match.startsAt!,
+      ).toBeGreaterThanOrEqual(minMs);
+      expect(
+        restored.botNextGuessAt! - restored.match.startsAt!,
+      ).toBeLessThanOrEqual(maxMs);
+    },
+  );
+
+  it.each(['easy', 'medium', 'hard'] as const)(
+    'keeps %s guesses unique, valid and consistent with all prior clues',
+    (difficulty) => {
+      const history: Attempt[] = [];
+      for (let i = 0; i < 6; i++) {
+        const word = chooseBotGuess(
+          history,
+          ANSWERS,
+          (length) => length - 1,
+          difficulty,
+        );
+        expect(ALLOWED_WORDS.has(word)).toBe(true);
+        expect(history.some((attempt) => attempt.word === word)).toBe(false);
+        for (const attempt of history)
+          expect(scoreGuess(word, attempt.word)).toEqual(attempt.marks);
+        history.push({
+          word,
+          marks: scoreGuess('APPLE', word),
+          elapsedMs: i * 30000,
+          requestId: randomUUID(),
+        });
+        if (word === 'APPLE') break;
+      }
+    },
+  );
+
+  it('uses broader, less selective choices for easier bots', () => {
+    const choices: number[] = [];
+    for (const difficulty of ['hard', 'medium', 'easy'] as const) {
+      chooseBotGuess(
+        [],
+        ANSWERS,
+        (length) => {
+          choices.push(length);
+          return 0;
+        },
+        difficulty,
+      );
+    }
+    expect(choices).toEqual([3, 10, ANSWERS.length]);
+  });
+
+  it('defaults legacy saved rooms to hard', () => {
+    const room = started();
+    expect(room.botDifficulty).toBeUndefined();
+    expect(projectRoom(room, p1, 46000).botDifficulty).toBe('hard');
+    expect(bot(room).name).toBe('Pip');
+    expect(room.botNextGuessAt).toBe(57000);
+  });
+});

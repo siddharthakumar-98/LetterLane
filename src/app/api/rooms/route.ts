@@ -8,7 +8,10 @@ export async function POST(request: Request) {
     checkOrigin(request);
     const input = createSchema.parse(await readBody(request));
     const id = await getPlayerId(request);
-    return json(await createRoom(id, input.name, input.mode), 201);
+    return json(
+      await createRoom(id, input.name, input.mode, input.botDifficulty),
+      201,
+    );
   } catch (error) {
     return failure(error);
   }

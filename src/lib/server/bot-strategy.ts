@@ -1,6 +1,7 @@
 import 'server-only';
 import { scoreGuess } from '../game/scoring';
-import type { Attempt } from '../game/types';
+import type { Attempt, BotDifficulty } from '../game/types';
+import { BOT_PROFILES } from '../game/bot-difficulty';
 
 type Feedback = Pick<Attempt, 'word' | 'marks'>;
 
@@ -9,6 +10,7 @@ export function chooseBotGuess(
   attempts: readonly Feedback[],
   vocabulary: readonly string[],
   randomIndex: (length: number) => number,
+  difficulty: BotDifficulty = 'hard',
 ): string {
   const used = new Set(attempts.map((attempt) => attempt.word));
   const available = vocabulary.filter((word) => !used.has(word));
@@ -37,6 +39,8 @@ export function chooseBotGuess(
     .map((word) => ({ word, score: information(word) }))
     .sort((a, b) => b.score - a.score || a.word.localeCompare(b.word));
   // Variation among useful candidates keeps the bot from repeating one script.
-  const shortlist = ranked.slice(0, Math.min(3, ranked.length));
+  // Easier bots consider a wider range of words instead of favoring only
+  // the most informative guesses. Every level still respects its own clues.
+  const shortlist = ranked.slice(0, BOT_PROFILES[difficulty].shortlistSize);
   return shortlist[randomIndex(shortlist.length)].word;
 }

@@ -131,7 +131,7 @@ export function Results({
       </div>
       <p className="muted rematch-note">
         {hasBot
-          ? 'Pip is ready for another round whenever you are.'
+          ? `${room.players.find((p) => p.isBot)!.name} is ready for another round whenever you are.`
           : room.players.some((p) => p.rematch && p.id !== room.selfId)
             ? 'Your friend is ready for a rematch.'
             : 'Same company. A new word. Both players choose to play again.'}

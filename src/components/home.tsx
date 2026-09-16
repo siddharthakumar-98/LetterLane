@@ -14,12 +14,14 @@ import {
 import { Header, Footer } from './chrome';
 import { api, ApiError } from '@/lib/client/api';
 import { codeSchema, nameSchema } from '@/lib/game/validation';
-import type { Mode, RoomView } from '@/lib/game/types';
+import type { Mode, RoomView, BotDifficulty } from '@/lib/game/types';
+import { BOT_PROFILES } from '@/lib/game/bot-difficulty';
 export default function Home() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [mode, setMode] = useState<Mode>('duel');
+  const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>('medium');
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   async function start(join: boolean) {
@@ -40,7 +42,7 @@ export default function Home() {
         join ? `/api/rooms/${parsedCode.data}` : '/api/rooms',
         join
           ? { type: 'join', name: parsedName.data }
-          : { name: parsedName.data, mode },
+          : { name: parsedName.data, mode, botDifficulty },
       );
       localStorage.setItem('letterlane-name', parsedName.data);
       router.push(`/room/${room.code}`);
@@ -198,6 +200,37 @@ export default function Home() {
                 </span>
                 {mode === 'coop' && <Check className="mode-check" size={16} />}
               </label>
+            </fieldset>
+            <fieldset
+              className="difficulty-picker"
+              disabled={!!busy}
+              aria-describedby="difficulty-help"
+            >
+              <legend>Bot difficulty</legend>
+              <p id="difficulty-help">
+                If no friend joins, choose who fills the open seat.
+              </p>
+              <div className="difficulty-options">
+                {(['easy', 'medium', 'hard'] as const).map((difficulty) => (
+                  <label
+                    key={difficulty}
+                    className={botDifficulty === difficulty ? 'selected' : ''}
+                  >
+                    <input
+                      type="radio"
+                      name="bot-difficulty"
+                      value={difficulty}
+                      checked={botDifficulty === difficulty}
+                      onChange={() => setBotDifficulty(difficulty)}
+                    />
+                    <span>
+                      <strong>{BOT_PROFILES[difficulty].label}</strong>
+                      <small>{BOT_PROFILES[difficulty].name}</small>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <p>{BOT_PROFILES[botDifficulty].description}</p>
             </fieldset>
             <button
               className="button primary full"

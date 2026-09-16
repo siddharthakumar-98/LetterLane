@@ -1,5 +1,6 @@
 export type Mark = 'correct' | 'present' | 'absent';
 export type Mode = 'duel' | 'coop';
+export type BotDifficulty = 'easy' | 'medium' | 'hard';
 export type Attempt = {
   word: string;
   marks: Mark[];
@@ -17,6 +18,8 @@ export type Player = {
   attempts: Attempt[];
 };
 export type Room = {
+  /** Missing in older rooms, which retain the original hard bot. */
+  botDifficulty?: BotDifficulty;
   /** Private scheduling state: never projected to clients. */
   botNextGuessAt?: number | null;
   id: string;

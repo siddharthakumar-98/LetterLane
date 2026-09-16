@@ -2271,3 +2271,67 @@ input::placeholder {
     font-size: 24px;
   }
 }
+
+.difficulty-picker {
+  padding: 0;
+  border: 0;
+  margin: 0 0 22px;
+}
+.difficulty-picker legend {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.difficulty-picker p {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.difficulty-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 8px;
+}
+.difficulty-options label {
+  position: relative;
+  padding: 12px 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  text-align: center;
+  cursor: pointer;
+}
+.difficulty-options label.selected {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent-line);
+}
+.difficulty-options input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.difficulty-options label:has(input:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+.difficulty-options strong,
+.difficulty-options small {
+  display: block;
+}
+.difficulty-options strong {
+  font-size: 14px;
+}
+.difficulty-options small {
+  font-size: 12px;
+  margin-top: 4px;
+  color: var(--muted);
+}
+.difficulty-picker:disabled {
+  opacity: 0.57;
+}
+.difficulty-picker:disabled label {
+  cursor: not-allowed;
+}

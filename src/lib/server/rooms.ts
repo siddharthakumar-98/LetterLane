@@ -3,7 +3,13 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { transaction, databaseTime, type DB } from './db';
 import { ALLOWED_WORDS, pickAnswer } from './words';
 import { applyAction, projectRoom } from '../game/rules';
-import { GameError, type Action, type Mode, type Room } from '../game/types';
+import {
+  GameError,
+  type Action,
+  type Mode,
+  type Room,
+  type BotDifficulty,
+} from '../game/types';
 import { advanceBots } from './bots';
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 async function rateLimit(db: DB, key: string, max: number, seconds: number) {
@@ -77,7 +83,12 @@ async function persist(db: DB, room: Room) {
     [room.id, room.revision],
   );
 }
-export async function createRoom(playerId: string, name: string, mode: Mode) {
+export async function createRoom(
+  playerId: string,
+  name: string,
+  mode: Mode,
+  botDifficulty: BotDifficulty = 'hard',
+) {
   await transaction((db) => rateLimit(db, `create:${playerId}`, 12, 3600));
   return transaction(async (db) => {
     const now = await databaseTime(db);
@@ -100,6 +111,7 @@ export async function createRoom(playerId: string, name: string, mode: Mode) {
       id,
       code,
       mode,
+      botDifficulty,
       revision: 0,
       createdAt: now,
       expiresAt: now + 86400000,

@@ -493,12 +493,12 @@ export function RoomGame({ code }: { code: string }) {
                   ) : me?.count === 6 ? (
                     <span>
                       Your six are in. Waiting for{' '}
-                      {opponent?.isBot ? 'Pip' : 'your friend'}…
+                      {opponent?.isBot ? opponent.name : 'your friend'}…
                     </span>
                   ) : timeUp ? (
                     <span>
                       Your time is up. Waiting for{' '}
-                      {opponent?.isBot ? 'Pip' : 'your friend'}…
+                      {opponent?.isBot ? opponent.name : 'your friend'}…
                     </span>
                   ) : phase === 'countdown' ? (
                     'Both boards open at the same time.'
@@ -522,7 +522,7 @@ export function RoomGame({ code }: { code: string }) {
                 </div>
                 <p className="opponent-description">
                   {opponent?.isBot
-                    ? 'Pip uses its own clues. Bot guesses stay hidden until the round ends.'
+                    ? `${opponent.name} uses its own clues. Bot guesses stay hidden until the round ends.`
                     : `${opponent?.name}’s progress. The words are their little secret.`}
                 </p>
                 <MaskedBoard count={opponent?.count ?? 0} />

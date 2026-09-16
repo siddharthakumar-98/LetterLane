@@ -49,3 +49,24 @@ it('never includes raw database errors or secrets in API errors', async () => {
   expect(response.status).toBe(503);
   expect(response.headers.get('Cache-Control')).toContain('no-store');
 });
+
+it('validates bot difficulty on room creation and preserves older clients', async () => {
+  const { createSchema, actionSchema } =
+    await import('../src/lib/game/validation');
+  const base = { name: 'Ada', mode: 'duel' };
+  expect(createSchema.parse(base).botDifficulty).toBe('hard');
+  for (const botDifficulty of ['easy', 'medium', 'hard']) {
+    expect(createSchema.parse({ ...base, botDifficulty }).botDifficulty).toBe(
+      botDifficulty,
+    );
+  }
+  for (const botDifficulty of ['expert', null, 0, { name: 'Pip' }]) {
+    expect(createSchema.safeParse({ ...base, botDifficulty }).success).toBe(
+      false,
+    );
+  }
+  expect(
+    actionSchema.safeParse({ type: 'join', name: 'Max', botDifficulty: 'easy' })
+      .success,
+  ).toBe(false);
+});
