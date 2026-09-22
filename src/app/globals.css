@@ -2317,17 +2317,9 @@ input::placeholder {
   outline: 3px solid var(--accent);
   outline-offset: 3px;
 }
-.difficulty-options strong,
-.difficulty-options small {
-  display: block;
-}
 .difficulty-options strong {
+  display: block;
   font-size: 14px;
-}
-.difficulty-options small {
-  font-size: 12px;
-  margin-top: 4px;
-  color: var(--muted);
 }
 .difficulty-picker:disabled {
   opacity: 0.57;
