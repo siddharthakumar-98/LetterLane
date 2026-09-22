@@ -225,7 +225,6 @@ export default function Home() {
                     />
                     <span>
                       <strong>{BOT_PROFILES[difficulty].label}</strong>
-                      <small>{BOT_PROFILES[difficulty].name}</small>
                     </span>
                   </label>
                 ))}

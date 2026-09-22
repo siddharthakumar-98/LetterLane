@@ -7,7 +7,7 @@ test('a lone player gets a bot after the real 45-second wait, plays, reconnects 
 }, testInfo) => {
   await page.goto('/');
   await page.getByLabel('What should we call you?').fill('Solo');
-  await page.getByRole('radio', { name: 'Hard Pip', exact: true }).check();
+  await page.getByRole('radio', { name: 'Hard', exact: true }).check();
   await page.getByRole('button', { name: 'Create a private room' }).click();
   await expect(page).toHaveURL(/\/room\/[A-Z2-9]{6}/);
   const code = page.url().split('/').at(-1)!;
@@ -111,12 +111,10 @@ test('difficulty selection is accessible and survives room creation and reload',
   ] as const) {
     await page.goto('/');
     await expect(
-      page.getByRole('radio', { name: 'Medium Pipper', exact: true }),
+      page.getByRole('radio', { name: 'Medium', exact: true }),
     ).toBeChecked();
     await page.getByLabel('What should we call you?').fill('Solo');
-    await page
-      .getByRole('radio', { name: `${label} ${name}`, exact: true })
-      .check();
+    await page.getByRole('radio', { name: label, exact: true }).check();
     if (difficulty === 'medium') {
       await page.getByRole('radio', { name: /Better together/ }).check();
       expect(
