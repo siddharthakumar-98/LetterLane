@@ -171,3 +171,26 @@ This design targets small private matches. Per-room locks and the transaction po
 The one-second fallback polling and five-second heartbeats prioritize predictable recovery and advance bot actions. Bot scheduling adds no background worker or cron service. At larger concurrency, increase the polling interval when Realtime is healthy, use broadcast invalidations, narrow persistence to changed projections, tune Supabase Realtime connection limits, and monitor pool saturation. Each heartbeat currently rewrites the small room snapshot and upserts projections. Rate-limit buckets should be moved to a purpose-built scalable store only if necessary; no additional service is required at this scale.
 
 Schedule database maintenance appropriate to your retention policy (SQL examples in `supabase/maintenance.sql`). Expired rooms are inaccessible immediately but retained until cleanup; deleting them cascades to match/attempt/private state rows. Preserve data you need before running cleanup. Guest rows are kept while referenced by room history. Database backups and service uptime depend on your Supabase plan. No external scheduled service is required for game correctness.
+
+## Letterlane Phrases
+
+Choose **Phrases** in the shared Words/Phrases navigation, or open **/phrases**. This is the same private two-player game with whole sayings instead of five-letter words: duel/co-op, six guesses, fallback bots and difficulty choices, private opponent guesses, saved rooms, and rematches all use the shared engine. Words remains at `/`, and both types retain their existing `/room/<code>` invitation URLs.
+
+The initial collection has **51 phrases, at most seven words each**, derived from [Wikipedia's List of proverbial phrases](https://en.wikipedia.org/wiki/List_of_proverbial_phrases). It lives in `src/lib/server/phrases/proverbs.json`; see the adjacent `SOURCES.md` for the pinned source, adaptations, dictionary provenance, and how to add a collection. Wikipedia is never contacted during play. The eight-word “Beauty is in the eye of the beholder” and the eleven-word journey example are excluded by the limit.
+
+Letters fill the displayed word lengths automatically. Spaces, apostrophes, commas, hyphens, and periods are shown but never consume tiles. Type with the shared on-screen keyboard, use your physical keyboard, or edit/paste letters in the phrase input. Words wrap as whole groups across lines. Accepted guesses remain visible; only the current empty attempt is expanded. The help dialog explains:
+
+- **Green:** correct letter and position.
+- **Orange:** correct letter in the same word, wrong position.
+- **Blue:** a remaining occurrence in another word.
+- **Grey:** no remaining occurrence in the phrase.
+
+Matching consumes occurrences once: all greens first, then all same-word oranges, then cross-word blues, left to right. Extra duplicate letters turn grey. The keyboard displays the strongest hint seen for each letter; exact word-specific hints remain on the board.
+
+Every guessed word is validated before any scoring. The original dictionary is reused and supplemented by a frozen variable-length word list. Rejections identify one-based positions: `Word 2 is not in word list`, `Words 1 and 3 are not in word list`, or `Words 1, 2, and 5 are not in word list`. Invalid guesses consume no attempt or bonus. Phrases start at **3:00** and each green/orange/blue tile adds **five seconds**. Words retains its original 1:30 clock and 20-second green/yellow bonuses.
+
+Puzzle selection remains **random per room and rematch**, excluding the immediately previous answer; there are no daily puzzles. The stored room's `game` discriminator isolates Words and Phrases, and old rooms default to Words. Each room and round has its own IDs, answer, attempts, completion and rematch state. Accepted phrase progress survives reloads through the existing PostgreSQL/PGlite persistence. The optional saved display name uses `letterlane-phrases-name`, separate from `letterlane-name`. Unsubmitted draft letters are not persisted, matching Words. The app has per-round result statistics, which are reused with phrase boards; it has no global streak or lifetime-statistics system to migrate.
+
+**Database upgrade:** apply `supabase/migrations/202609220001_phrases.sql` before deploying this build (`pnpm db:migrate` with the existing database configuration). It adds the guess type and permits compact phrase letters plus one mark per letter while preserving the five-letter Words constraint. Existing rows default to Words. Local mode applies it automatically. No hosted database has been modified by this implementation.
+
+Run `./dev.sh`, open `http://127.0.0.1:3000/phrases`, create a room and invite a second browser profile (or wait for a bot). Run `pnpm test` for rules, validation, duplicate scoring, datasets, mode isolation and database tests; run `pnpm build && pnpm test:e2e` for the Words and Phrases browser flows. Browser tests use the existing local-only deterministic test selection, never production puzzles. Phrase bots use public word lengths and their own feedback to choose valid words; their guesses can be grammatical nonsense because they do not receive or search the answer collection.

@@ -2,6 +2,8 @@
 import Link from 'next/link';
 import { ArrowRight, RotateCcw, Sparkles, Trophy } from 'lucide-react';
 import type { RoomView } from '@/lib/game/types';
+import { PhraseRow } from './phrase-board';
+import { playableLetters } from '@/lib/game/phrases';
 import { Board } from './board';
 import { BotTag } from './bot-notice';
 export function formatTime(ms: number) {
@@ -17,6 +19,7 @@ export function Results({
   busy: boolean;
   onRematch: () => void;
 }) {
+  const phrases = room.game === 'phrases';
   const me = room.players.find((p) => p.id === room.selfId)!;
   const winner = room.players.find((p) => p.id === room.match.winnerId);
   const hasBot = room.players.some((p) => p.isBot);
@@ -50,18 +53,30 @@ export function Results({
           : room.match.outcome === 'draw'
             ? 'Same score. Shared bragging rights.'
             : room.match.outcome === 'team-loss'
-              ? 'Out of time or tries. A fresh word awaits.'
-              : 'One little word. Well played.'}
+              ? `Out of time or tries. A fresh ${phrases ? 'phrase' : 'word'} awaits.`
+              : phrases
+                ? 'One whole phrase. Well played.'
+                : 'One little word. Well played.'}
       </p>
       <div className="answer-reveal">
-        <span>THE WORD WAS</span>
-        <div>
-          {[...(room.match.answer ?? '')].map((letter, i) => (
-            <span className="tile correct" key={i}>
-              {letter}
-            </span>
-          ))}
-        </div>
+        <span>{phrases ? 'THE PHRASE WAS' : 'THE WORD WAS'}</span>
+        {phrases ? (
+          <PhraseRow
+            template={room.match.phraseTemplate!}
+            letters={playableLetters(room.match.answer ?? '')}
+            marks={Array(playableLetters(room.match.answer ?? '').length).fill(
+              'correct',
+            )}
+          />
+        ) : (
+          <div>
+            {[...(room.match.answer ?? '')].map((letter, i) => (
+              <span className="tile correct" key={i}>
+                {letter}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
       <div className="result-players">
         {room.players.map((p) => (
@@ -105,6 +120,7 @@ export function Results({
             </div>
             <Board
               compact
+              template={room.match.phraseTemplate}
               attempts={p.attempts ?? []}
               label={`${p.name}'s revealed guesses`}
             />
@@ -124,7 +140,7 @@ export function Results({
               ? 'Getting ready…'
               : 'One more round'}
         </button>
-        <Link href="/" className="text-button">
+        <Link href={phrases ? '/phrases' : '/'} className="text-button">
           Back to home
           <ArrowRight size={16} />
         </Link>
@@ -134,7 +150,7 @@ export function Results({
           ? `${room.players.find((p) => p.isBot)!.name} is ready for another round whenever you are.`
           : room.players.some((p) => p.rematch && p.id !== room.selfId)
             ? 'Your friend is ready for a rematch.'
-            : 'Same company. A new word. Both players choose to play again.'}
+            : `Same company. A new ${phrases ? 'phrase' : 'word'}. Both players choose to play again.`}
       </p>
     </section>
   );

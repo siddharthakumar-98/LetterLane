@@ -38,6 +38,9 @@ beforeAll(async () => {
   await db.exec(
     await readFile('supabase/migrations/202609110001_bots.sql', 'utf8'),
   );
+  await db.exec(
+    await readFile('supabase/migrations/202609220001_phrases.sql', 'utf8'),
+  );
   server = new PGLiteSocketServer({ db, path: join(folder, '.s.PGSQL.5432') });
   await server.start();
   vi.stubEnv('GAME_BACKEND', 'supabase');
@@ -207,4 +210,38 @@ it('persists bot joins, guesses, reconnection and rematches through Postgres.js'
   expect((await roomOperation(created.code, p1)).match.id).toBe(
     rematch.match.id,
   );
+});
+
+it('stores phrase guesses and blue marks through the production Postgres driver', async () => {
+  const room = await createRoom(
+    randomUUID(),
+    'Phrase player',
+    'coop',
+    'medium',
+    'phrases',
+  );
+  const owner = room.selfId;
+  const friend = randomUUID();
+  await roomOperation(room.code, friend, { type: 'join', name: 'Friend' });
+  await roomOperation(room.code, owner, { type: 'ready' });
+  await roomOperation(room.code, friend, { type: 'ready' });
+  await transaction((tx) =>
+    tx.query(
+      `update private.room_states set state=jsonb_set(jsonb_set(jsonb_set(state,'{match,phase}','"active"'),'{match,answer}','"CAT BAG TIME"'),'{match,startsAt}',to_jsonb((extract(epoch from clock_timestamp())*1000-1000)::bigint)) where room_id=$1`,
+      [room.id],
+    ),
+  );
+  const result = await roomOperation(room.code, owner, {
+    type: 'guess',
+    word: 'TAR CAB TIME',
+    matchId: room.match.id,
+    requestId: randomUUID(),
+  });
+  expect(result.players[0].attempts?.[0].marks).toContain('elsewhere');
+  expect((await roomOperation(room.code, owner)).players[0].attempts).toEqual(
+    result.players[0].attempts,
+  );
+  expect(
+    (await roomOperation(room.code, friend)).players[0],
+  ).not.toHaveProperty('attempts');
 });

@@ -18,10 +18,12 @@ import { Board, MaskedBoard } from './board';
 import { Keyboard } from './keyboard';
 import { Results } from './results';
 import { RoundTimer } from './round-timer';
-import { INITIAL_TIME_MS, timeBonus } from '@/lib/game/round-clock';
+import { initialTime, timeBonus } from '@/lib/game/round-clock';
 import { useRoom } from '@/lib/client/use-room';
 import type { PlayerView, RoomView } from '@/lib/game/types';
 import { nameSchema } from '@/lib/game/validation';
+import { phraseMetadata, playableLetters } from '@/lib/game/phrases';
+import { PhraseInstructions } from './phrase-instructions';
 import { BotNotice, BotTag } from './bot-notice';
 function PlayerBadge({
   player,
@@ -152,41 +154,50 @@ function Lobby({
         </p>
       </div>
       <aside className="lobby-side">
-        <span className="eyebrow">A LITTLE HEAD START</span>
-        <div className="sample-word">
-          {[...'HELLO'].map((x, i) => (
-            <span
-              className={`tile ${i === 0 ? 'correct' : i === 2 ? 'present' : 'absent'}`}
-              key={i}
-            >
-              {x}
-            </span>
-          ))}
-        </div>
-        <h2>
-          Good words.
-          <br />
-          Better company.
-        </h2>
-        <p>
-          Five letters to find. Six chances each. Watch your friend’s progress
-          without giving the game away.
-        </p>
-        <div className="lobby-legend">
-          <span>
-            <i className="correct" /> Right spot
-          </span>
-          <span>
-            <i className="present" /> Wrong spot
-          </span>
-          <span>
-            <i className="absent" /> Not here
-          </span>
-        </div>
-        <p className="lobby-tip">
-          Start with 1:30 each. Every green or yellow tile adds 20 seconds to
-          your own clock. Three matching tiles? One extra minute.
-        </p>
+        {room.game === 'phrases' ? (
+          <>
+            <h2>Familiar phrases. Fresh clues.</h2>
+            <PhraseInstructions />
+          </>
+        ) : (
+          <>
+            <span className="eyebrow">A LITTLE HEAD START</span>
+            <div className="sample-word">
+              {[...'HELLO'].map((x, i) => (
+                <span
+                  className={`tile ${i === 0 ? 'correct' : i === 2 ? 'present' : 'absent'}`}
+                  key={i}
+                >
+                  {x}
+                </span>
+              ))}
+            </div>
+            <h2>
+              Good words.
+              <br />
+              Better company.
+            </h2>
+            <p>
+              Five letters to find. Six chances each. Watch your friend’s
+              progress without giving the game away.
+            </p>
+            <div className="lobby-legend">
+              <span>
+                <i className="correct" /> Right spot
+              </span>
+              <span>
+                <i className="present" /> Wrong spot
+              </span>
+              <span>
+                <i className="absent" /> Not here
+              </span>
+            </div>
+            <p className="lobby-tip">
+              Start with 1:30 each. Every green or yellow tile adds 20 seconds
+              to your own clock. Three matching tiles? One extra minute.
+            </p>
+          </>
+        )}
         <p className="lobby-tip">
           {room.mode === 'coop'
             ? 'In co-op, a solve from either player is a win for the team.'
@@ -222,12 +233,16 @@ export function RoomGame({ code }: { code: string }) {
   const me = room?.players.find((p) => p.id === room.selfId);
   const opponent = room?.players.find((p) => p.id !== room.selfId);
   const phase = room?.match.phase;
+  const phrases = room?.game === 'phrases';
+  const template = room?.match.phraseTemplate;
+  const letterCount = template ? phraseMetadata(template).letterCount : 5;
+  const homePath = phrases ? '/phrases' : '/';
   const lastAttempt = me?.attempts?.at(-1);
   const clockStopped = me?.solved || me?.count === 6;
   const displayNow = Math.max(now, room?.serverTime ?? 0);
   const remainingFor = (player: PlayerView | undefined) =>
     phase === 'countdown'
-      ? INITIAL_TIME_MS
+      ? initialTime(room?.game)
       : Math.max(
           0,
           (player?.timerEndsAt ?? 0) - (player?.timerStoppedAt ?? displayNow),
@@ -251,6 +266,15 @@ export function RoomGame({ code }: { code: string }) {
       setError(`Copy this room code to invite your friend: ${code}`);
     }
   };
+  useEffect(() => {
+    if (!phrases || phase !== 'active') return;
+    const frame = requestAnimationFrame(() => {
+      document
+        .querySelector('.your-lane .phrase-guess:last-child')
+        ?.scrollIntoView({ block: 'center' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [phrases, phase, me?.count, room?.match.id]);
   const key = useCallback(
     async (value: string) => {
       if (!canGuess || submitting.current || !room) return;
@@ -258,11 +282,15 @@ export function RoomGame({ code }: { code: string }) {
         setInput((s) => s.slice(0, -1));
         setError('');
       } else if (/^[a-zA-Z]$/.test(value)) {
-        setInput((s) => (s + value.toUpperCase()).slice(0, 5));
+        setInput((s) => (s + value.toUpperCase()).slice(0, letterCount));
         setError('');
       } else if (value === 'Enter') {
-        if (input.length !== 5) {
-          setError('Your guess needs exactly five letters.');
+        if (input.length !== letterCount) {
+          setError(
+            phrases
+              ? `Fill all ${letterCount} letters before submitting.`
+              : 'Your guess needs exactly five letters.',
+          );
           return;
         }
         submitting.current = true;
@@ -287,7 +315,7 @@ export function RoomGame({ code }: { code: string }) {
         }
       }
     },
-    [canGuess, room, input, act, setError],
+    [canGuess, room, input, act, setError, letterCount, phrases],
   );
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -326,8 +354,8 @@ export function RoomGame({ code }: { code: string }) {
     ? Math.max(0, Math.ceil((room.match.startsAt - now) / 1000))
     : 0;
   return (
-    <div className="page-shell room-shell">
-      <Header>
+    <div className={`page-shell room-shell ${phrases ? 'phrase-mode' : ''}`}>
+      <Header game={room?.game}>
         <button
           className="text-button share-button"
           onClick={() => void copy()}
@@ -338,7 +366,7 @@ export function RoomGame({ code }: { code: string }) {
       </Header>
       <main className="room-main">
         <div className="room-topline">
-          <Link href="/" className="text-button">
+          <Link href={homePath} className="text-button">
             <ArrowLeft size={16} />
             Home
           </Link>
@@ -400,7 +428,7 @@ export function RoomGame({ code }: { code: string }) {
               {fatal === 410 ? 'This lane has closed.' : 'A little lost?'}
             </h1>
             <p>{error}</p>
-            <Link href="/" className="button primary">
+            <Link href={homePath} className="button primary">
               Find a fresh start
               <ArrowRightIcon />
             </Link>
@@ -445,11 +473,13 @@ export function RoomGame({ code }: { code: string }) {
                   progress intact.
                 </p>
               )}
-            <div className="arena">
+            <div className={`arena ${phrases ? 'phrase-arena' : ''}`}>
               <aside className="arena-timers" aria-label="Round timers">
                 <RoundTimer
                   remainingMs={remainingMs}
-                  bonusMs={lastAttempt ? timeBonus(lastAttempt.marks) : 0}
+                  bonusMs={
+                    lastAttempt ? timeBonus(lastAttempt.marks, room.game) : 0
+                  }
                   running={phase === 'active' && !clockStopped}
                 />
                 <RoundTimer
@@ -474,12 +504,20 @@ export function RoomGame({ code }: { code: string }) {
                   <span>{me?.count ?? 0} OF 6 GUESSES</span>
                 </div>
                 <div className="board-wrap">
-                  <Board attempts={me?.attempts ?? []} input={input} />
+                  <Board
+                    attempts={me?.attempts ?? []}
+                    input={input}
+                    template={template}
+                  />
                   {phase === 'countdown' && (
                     <div className="countdown-overlay" role="status">
                       <span>MAKE YOURSELF READY</span>
                       <strong>{countdown || 'Go'}</strong>
-                      <p>One word. Let’s find it.</p>
+                      <p>
+                        {phrases
+                          ? 'One phrase. Let’s find it.'
+                          : 'One word. Let’s find it.'}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -503,9 +541,48 @@ export function RoomGame({ code }: { code: string }) {
                   ) : phase === 'countdown' ? (
                     'Both boards open at the same time.'
                   ) : (
-                    <span>Trust your hunch. Make it five letters.</span>
+                    <span>
+                      {phrases
+                        ? `${phraseMetadata(template!).wordCount} words · ${letterCount} letters. Spaces and punctuation are automatic.`
+                        : 'Trust your hunch. Make it five letters.'}
+                    </span>
                   )}
                 </div>
+                {phrases && (
+                  <div className="phrase-entry">
+                    <label className="field-label" htmlFor="phrase-letters">
+                      Edit your phrase letters
+                    </label>
+                    <input
+                      id="phrase-letters"
+                      value={input}
+                      disabled={!canGuess}
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                      aria-describedby="phrase-entry-hint"
+                      onChange={(event) => {
+                        setInput(
+                          playableLetters(event.target.value).slice(
+                            0,
+                            letterCount,
+                          ),
+                        );
+                        setError('');
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          void key('Enter');
+                        }
+                      }}
+                    />
+                    <p id="phrase-entry-hint">
+                      Type or paste letters here, or use the keyboard below. You
+                      can move the cursor to correct any word.
+                    </p>
+                  </div>
+                )}
                 <Keyboard
                   attempts={me?.attempts ?? []}
                   onKey={(value) => void key(value)}
@@ -526,6 +603,12 @@ export function RoomGame({ code }: { code: string }) {
                     : `${opponent?.name}’s progress. The words are their little secret.`}
                 </p>
                 <MaskedBoard count={opponent?.count ?? 0} />
+                {phrases && (
+                  <details className="phrase-help">
+                    <summary>Phrase color hints</summary>
+                    <PhraseInstructions />
+                  </details>
+                )}
                 <div className="opponent-note">
                   <Radio size={16} />
                   <span>
@@ -545,6 +628,11 @@ export function RoomGame({ code }: { code: string }) {
                   <span>
                     <i className="present" /> Wrong spot
                   </span>
+                  {phrases && (
+                    <span>
+                      <i className="elsewhere" /> Another word
+                    </span>
+                  )}
                   <span>
                     <i className="absent" /> Not here
                   </span>
@@ -577,7 +665,7 @@ export function RoomGame({ code }: { code: string }) {
             .join(', ')}
         </div>
       </main>
-      <Footer />
+      <Footer game={room?.game} />
     </div>
   );
 }

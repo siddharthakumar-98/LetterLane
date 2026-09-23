@@ -1,6 +1,6 @@
 import 'server-only';
 import { scoreGuess } from '../game/scoring';
-import type { Attempt, BotDifficulty } from '../game/types';
+import type { Attempt, BotDifficulty, Mark } from '../game/types';
 import { BOT_PROFILES } from '../game/bot-difficulty';
 
 type Feedback = Pick<Attempt, 'word' | 'marks'>;
@@ -11,13 +11,14 @@ export function chooseBotGuess(
   vocabulary: readonly string[],
   randomIndex: (length: number) => number,
   difficulty: BotDifficulty = 'hard',
+  evaluate: (answer: string, guess: string) => Mark[] = scoreGuess,
 ): string {
   const used = new Set(attempts.map((attempt) => attempt.word));
   const available = vocabulary.filter((word) => !used.has(word));
   if (available.length === 0) throw new Error('Bot vocabulary is exhausted.');
   const consistent = available.filter((candidate) =>
     attempts.every((attempt) =>
-      scoreGuess(candidate, attempt.word).every(
+      evaluate(candidate, attempt.word).every(
         (mark, i) => mark === attempt.marks[i],
       ),
     ),

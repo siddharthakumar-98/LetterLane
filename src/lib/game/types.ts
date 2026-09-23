@@ -1,4 +1,5 @@
-export type Mark = 'correct' | 'present' | 'absent';
+export type Mark = 'correct' | 'present' | 'elsewhere' | 'absent';
+export type GameKind = 'words' | 'phrases';
 export type Mode = 'duel' | 'coop';
 export type BotDifficulty = 'easy' | 'medium' | 'hard';
 export type Attempt = {
@@ -18,6 +19,8 @@ export type Player = {
   attempts: Attempt[];
 };
 export type Room = {
+  /** Older rooms remain Words. */
+  game?: GameKind;
   /** Missing in older rooms, which retain the original hard bot. */
   botDifficulty?: BotDifficulty;
   /** Private scheduling state: never projected to clients. */
@@ -54,7 +57,10 @@ export type RoomView = Omit<Room, 'players' | 'match' | 'botNextGuessAt'> & {
   selfId: string;
   players: PlayerView[];
   serverTime: number;
-  match: Omit<Room['match'], 'answer'> & { answer?: string };
+  match: Omit<Room['match'], 'answer'> & {
+    answer?: string;
+    phraseTemplate?: string;
+  };
 };
 export type Action =
   | { type: 'join'; name: string }

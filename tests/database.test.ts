@@ -128,6 +128,9 @@ it('applies Supabase RLS policies and hides private state from authenticated rol
     await db.exec(
       await readFile('supabase/migrations/202609110001_bots.sql', 'utf8'),
     );
+    await db.exec(
+      await readFile('supabase/migrations/202609220001_phrases.sql', 'utf8'),
+    );
     const room = randomUUID(),
       match = randomUUID();
     await db.query(

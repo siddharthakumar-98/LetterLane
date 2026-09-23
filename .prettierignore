@@ -5,3 +5,5 @@ playwright-report
 test-results
 pnpm-lock.yaml
 next-env.d.ts
+
+src/lib/server/phrases/allowed-words.json

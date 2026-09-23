@@ -1,15 +1,28 @@
+import { PhraseBoard } from './phrase-board';
 import type { Attempt } from '@/lib/game/types';
 export function Board({
   attempts,
   input = '',
   compact = false,
   label = 'Your guesses',
+  template,
 }: {
   attempts: Attempt[];
   input?: string;
   compact?: boolean;
   label?: string;
+  template?: string;
 }) {
+  if (template)
+    return (
+      <PhraseBoard
+        template={template}
+        attempts={attempts}
+        input={input}
+        compact={compact}
+        label={label}
+      />
+    );
   return (
     <div
       className={`board ${compact ? 'compact' : ''}`}
