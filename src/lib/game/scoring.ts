@@ -20,7 +20,7 @@ export function scoreGuess(answer: string, guess: string): Mark[] {
   return marks;
 }
 export function keyboardMarks(attempts: { word: string; marks: Mark[] }[]) {
-  const weights = { absent: 0, present: 1, correct: 2 };
+  const weights = { absent: 0, elsewhere: 1, present: 2, correct: 3 };
   const result: Record<string, Mark> = {};
   for (const a of attempts)
     [...a.word].forEach((letter, i) => {

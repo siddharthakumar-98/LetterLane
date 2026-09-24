@@ -18,6 +18,7 @@ export const createSchema = z
   .object({
     name: nameSchema,
     mode: z.enum(['duel', 'coop']),
+    game: z.enum(['words', 'phrases']).default('words'),
     botDifficulty: z.enum(['easy', 'medium', 'hard']).default('hard'),
   })
   .strict();
@@ -29,7 +30,7 @@ export const actionSchema = z.discriminatedUnion('type', [
   z
     .object({
       type: z.literal('guess'),
-      word: z.string().max(32),
+      word: z.string().max(256),
       requestId: z.uuid(),
       matchId: z.uuid(),
     })

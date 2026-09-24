@@ -1,4 +1,11 @@
 'use client';
+import { PhraseRow } from './phrase-board';
+import { PhraseInstructions } from './phrase-instructions';
+import {
+  phraseTemplate,
+  playableLetters,
+  scorePhrase,
+} from '@/lib/game/phrases';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -14,9 +21,9 @@ import {
 import { Header, Footer } from './chrome';
 import { api, ApiError } from '@/lib/client/api';
 import { codeSchema, nameSchema } from '@/lib/game/validation';
-import type { Mode, RoomView, BotDifficulty } from '@/lib/game/types';
+import type { Mode, RoomView, BotDifficulty, GameKind } from '@/lib/game/types';
 import { BOT_PROFILES } from '@/lib/game/bot-difficulty';
-export default function Home() {
+export default function Home({ game = 'words' }: { game?: GameKind }) {
   const router = useRouter();
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -42,9 +49,12 @@ export default function Home() {
         join ? `/api/rooms/${parsedCode.data}` : '/api/rooms',
         join
           ? { type: 'join', name: parsedName.data }
-          : { name: parsedName.data, mode, botDifficulty },
+          : { name: parsedName.data, mode, botDifficulty, game },
       );
-      localStorage.setItem('letterlane-name', parsedName.data);
+      localStorage.setItem(
+        game === 'phrases' ? 'letterlane-phrases-name' : 'letterlane-name',
+        parsedName.data,
+      );
       router.push(`/room/${room.code}`);
     } catch (error) {
       setError(
@@ -56,98 +66,126 @@ export default function Home() {
     }
   }
   return (
-    <div className="page-shell">
-      <Header />
+    <div className={`page-shell ${game === 'phrases' ? 'phrase-mode' : ''}`}>
+      <Header game={game} />
       <main className="home-main">
         <section className="start-panel" aria-labelledby="home-title">
           <h1 id="home-title">
             Two minds.
             <br />
-            <span>One word.</span>
+            <span>{game === 'phrases' ? 'One phrase.' : 'One word.'}</span>
           </h1>
-          <section className="home-preview" aria-label="An example round">
-            <div className="preview-topline">
-              <span className="eyebrow">A GOOD KIND OF COMPETITION</span>
-              <Sparkles size={20} />
-            </div>
-            <div className="preview-game">
-              <div className="preview-player">
-                <div className="avatar sky">Y</div>
-                <div>
-                  <strong>You</strong>
-                  <span>A hunch, then a breakthrough.</span>
-                </div>
-                <span className="player-tag">YOUR LANE</span>
+          {game === 'phrases' ? (
+            <section className="home-preview" aria-label="An example phrase">
+              <div className="preview-topline">
+                <span className="eyebrow">LETTERLANE PHRASES</span>
+                <Sparkles size={20} />
               </div>
-              <div
-                className="preview-tiles"
-                aria-label="Example: guesses SLATE, CHIME, CHARM"
-              >
-                {[
-                  {
-                    word: 'SLATE',
-                    marks: ['absent', 'absent', 'correct', 'absent', 'absent'],
-                  },
-                  {
-                    word: 'CHIME',
-                    marks: [
-                      'correct',
-                      'correct',
-                      'absent',
-                      'present',
-                      'absent',
-                    ],
-                  },
-                  {
-                    word: 'CHARM',
-                    marks: [
-                      'correct',
-                      'correct',
-                      'correct',
-                      'correct',
-                      'correct',
-                    ],
-                  },
-                ].map((row, i) => (
-                  <div className="tile-row" key={row.word}>
-                    {[...row.word].map((letter, j) => (
-                      <span
-                        className={`tile ${row.marks[j]} ${i === 2 ? 'preview-win' : ''}`}
-                        key={j}
-                      >
-                        {letter}
-                      </span>
-                    ))}
+              <div className="phrase-preview">
+                <PhraseRow
+                  template={phraseTemplate('CAT BAG TIME')}
+                  letters={playableLetters('TAR CAB TIME')}
+                  marks={scorePhrase('CAT BAG TIME', 'TAR CAB TIME')}
+                />
+              </div>
+              <details className="phrase-help">
+                <summary>How to play Phrases</summary>
+                <PhraseInstructions />
+              </details>
+            </section>
+          ) : (
+            <section className="home-preview" aria-label="An example round">
+              <div className="preview-topline">
+                <span className="eyebrow">A GOOD KIND OF COMPETITION</span>
+                <Sparkles size={20} />
+              </div>
+              <div className="preview-game">
+                <div className="preview-player">
+                  <div className="avatar sky">Y</div>
+                  <div>
+                    <strong>You</strong>
+                    <span>A hunch, then a breakthrough.</span>
                   </div>
-                ))}
+                  <span className="player-tag">YOUR LANE</span>
+                </div>
+                <div
+                  className="preview-tiles"
+                  aria-label="Example: guesses SLATE, CHIME, CHARM"
+                >
+                  {[
+                    {
+                      word: 'SLATE',
+                      marks: [
+                        'absent',
+                        'absent',
+                        'correct',
+                        'absent',
+                        'absent',
+                      ],
+                    },
+                    {
+                      word: 'CHIME',
+                      marks: [
+                        'correct',
+                        'correct',
+                        'absent',
+                        'present',
+                        'absent',
+                      ],
+                    },
+                    {
+                      word: 'CHARM',
+                      marks: [
+                        'correct',
+                        'correct',
+                        'correct',
+                        'correct',
+                        'correct',
+                      ],
+                    },
+                  ].map((row, i) => (
+                    <div className="tile-row" key={row.word}>
+                      {[...row.word].map((letter, j) => (
+                        <span
+                          className={`tile ${row.marks[j]} ${i === 2 ? 'preview-win' : ''}`}
+                          key={j}
+                        >
+                          {letter}
+                        </span>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+                <div className="preview-result">
+                  <span className="win-spark">✦</span>
+                  <span>
+                    That <em>“I got it!”</em> feeling.
+                  </span>
+                  <span>3 / 6</span>
+                </div>
               </div>
-              <div className="preview-result">
-                <span className="win-spark">✦</span>
-                <span>
-                  That <em>“I got it!”</em> feeling.
-                </span>
-                <span>3 / 6</span>
+              <div className="three-facts">
+                <div>
+                  <strong>05</strong>
+                  <span>letters to find</span>
+                </div>
+                <div>
+                  <strong>06</strong>
+                  <span>chances each</span>
+                </div>
+                <div>
+                  <Copy size={24} />
+                  <span>one link to play</span>
+                </div>
               </div>
-            </div>
-            <div className="three-facts">
-              <div>
-                <strong>05</strong>
-                <span>letters to find</span>
-              </div>
-              <div>
-                <strong>06</strong>
-                <span>chances each</span>
-              </div>
-              <div>
-                <Copy size={24} />
-                <span>one link to play</span>
-              </div>
-            </div>
-          </section>
+            </section>
+          )}
           <p className="home-description">
             A friendly rivalry. A shared little victory.
             <br />
-            Your next five-letter obsession starts here.
+            {game === 'phrases'
+              ? 'Familiar sayings. A whole new way to play.'
+              : 'Your next five-letter obsession starts here.'}
           </p>
           <form
             className="start-form"
@@ -282,7 +320,7 @@ export default function Home() {
           </p>
         </section>
       </main>
-      <Footer />
+      <Footer game={game} />
     </div>
   );
 }

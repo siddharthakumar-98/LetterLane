@@ -8,9 +8,12 @@ import {
   solved,
   outOfTime,
 } from '../game/rules';
-import type { Action, Room, BotDifficulty } from '../game/types';
+import type { Action, Room, BotDifficulty, GameKind } from '../game/types';
 import { BOT_PROFILES } from '../game/bot-difficulty';
-import { ALLOWED_WORDS, ANSWERS, pickAnswer } from './words';
+import { ANSWERS } from './words';
+import { puzzleWords, pickPuzzle } from './puzzles';
+import { phraseTemplate } from '../game/phrases';
+import { choosePhraseBotGuess } from './phrase-bot';
 import { chooseBotGuess } from './bot-strategy';
 
 export const BOT_THINK_MIN_MS = BOT_PROFILES.hard.thinkMinMs;
@@ -19,7 +22,7 @@ export type BotServices = {
   id: () => string;
   randomIndex: (length: number) => number;
   thinkMs: (difficulty: BotDifficulty) => number;
-  nextAnswer: (previous: string) => string;
+  nextAnswer: (previous: string, game?: GameKind) => string;
 };
 const production: BotServices = {
   id: randomUUID,
@@ -28,7 +31,7 @@ const production: BotServices = {
     const profile = BOT_PROFILES[difficulty];
     return randomInt(profile.thinkMinMs, profile.thinkMaxMs + 1);
   },
-  nextAnswer: pickAnswer,
+  nextAnswer: (previous, game) => pickPuzzle(game, previous),
 };
 
 /** Call only under the room's DB row lock. No timers or jobs survive a request. */
@@ -42,8 +45,8 @@ export function advanceBots(room: Room, now: number, services = production) {
       id,
       action,
       now,
-      ALLOWED_WORDS,
-      () => services.nextAnswer(room.match.answer),
+      puzzleWords(room.game),
+      () => services.nextAnswer(room.match.answer, room.game),
       services.id,
     );
   if (
@@ -80,12 +83,15 @@ export function advanceBots(room: Room, now: number, services = production) {
       Math.max(now, room.match.startsAt!) + services.thinkMs(difficulty);
   }
   if (room.match.phase !== 'active' || now < room.botNextGuessAt) return;
-  const word = chooseBotGuess(
-    bot.attempts,
-    ANSWERS,
-    services.randomIndex,
-    difficulty,
-  );
+  const word =
+    room.game === 'phrases'
+      ? choosePhraseBotGuess(
+          phraseTemplate(room.match.answer),
+          bot.attempts,
+          services.randomIndex,
+          difficulty,
+        )
+      : chooseBotGuess(bot.attempts, ANSWERS, services.randomIndex, difficulty);
   act(bot.id, {
     type: 'guess',
     word,

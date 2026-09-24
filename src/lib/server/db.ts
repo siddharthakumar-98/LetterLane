@@ -44,6 +44,15 @@ async function localDB() {
         'utf8',
       ),
     );
+    await db.exec(
+      await fs.readFile(
+        path.join(
+          process.cwd(),
+          'supabase/migrations/202609220001_phrases.sql',
+        ),
+        'utf8',
+      ),
+    );
     return db;
   })().catch((error) => {
     runtime.local = undefined;

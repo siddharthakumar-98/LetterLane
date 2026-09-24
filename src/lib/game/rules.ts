@@ -1,3 +1,9 @@
+import {
+  playableLetters,
+  phraseTemplate,
+  scorePhrase,
+  validatePhraseGuess,
+} from './phrases';
 import { scoreGuess } from './scoring';
 import { validateGuess } from './validation';
 import { roundDeadline } from './round-clock';
@@ -21,7 +27,11 @@ export function outOfTime(room: Room, player: Player, now: number) {
     player.attempts.length >= MAX_ATTEMPTS
   )
     return false;
-  const deadline = roundDeadline(room.match.startsAt, player.attempts);
+  const deadline = roundDeadline(
+    room.match.startsAt,
+    player.attempts,
+    room.game,
+  );
   return deadline !== null && (room.match.endedAt ?? now) >= deadline;
 }
 const finished = (room: Room, player: Player, now: number) =>
@@ -37,7 +47,9 @@ export function failureRank(attempts: Attempt[]): number[] {
   return attempts.reduce(
     (best, a, i) => {
       const exact = a.marks.filter((m) => m === 'correct').length;
-      const misplaced = a.marks.filter((m) => m === 'present').length;
+      const misplaced = a.marks.filter(
+        (m) => m === 'present' || m === 'elsewhere',
+      ).length;
       const rank = [exact + misplaced, -(i + 1), exact, misplaced];
       return compare(rank, best) > 0 ? rank : best;
     },
@@ -95,7 +107,7 @@ export function advance(room: Room, now: number) {
         ...room.players.map((p) =>
           solved(p) || p.attempts.length >= MAX_ATTEMPTS
             ? room.match.startsAt! + p.attempts.at(-1)!.elapsedMs
-            : roundDeadline(room.match.startsAt, p.attempts)!,
+            : roundDeadline(room.match.startsAt, p.attempts, room.game)!,
         ),
       ),
     );
@@ -155,7 +167,12 @@ export function applyAction(
       (a) => a.requestId === action.requestId,
     );
     if (existing) {
-      if (existing.word !== action.word.trim().toUpperCase())
+      if (
+        existing.word !==
+        (room.game === 'phrases'
+          ? playableLetters(action.word)
+          : action.word.trim().toUpperCase())
+      )
         throw new GameError('That submission was already used.');
       return room;
     }
@@ -171,12 +188,27 @@ export function applyAction(
       throw new GameError(
         'Your time is up. Wait for the other player to finish.',
       );
-    const word = validateGuess(action.word, allowed);
+    const word =
+      room.game === 'phrases'
+        ? validatePhraseGuess(
+            action.word,
+            phraseTemplate(room.match.answer),
+            allowed,
+          )
+        : validateGuess(action.word, allowed);
     if (player.attempts.some((a) => a.word === word))
-      throw new GameError('You have already tried that word.', 422);
+      throw new GameError(
+        room.game === 'phrases'
+          ? 'You have already tried that phrase.'
+          : 'You have already tried that word.',
+        422,
+      );
     player.attempts.push({
       word,
-      marks: scoreGuess(room.match.answer, word),
+      marks:
+        room.game === 'phrases'
+          ? scorePhrase(room.match.answer, word)
+          : scoreGuess(room.match.answer, word),
       elapsedMs: now - room.match.startsAt!,
       requestId: action.requestId,
     });
@@ -227,13 +259,20 @@ export function projectRoom(
     id: room.id,
     code: room.code,
     mode: room.mode,
+    game: room.game ?? 'words',
     botDifficulty: room.botDifficulty ?? 'hard',
     revision: room.revision,
     createdAt: room.createdAt,
     expiresAt: room.expiresAt,
     selfId: playerId,
     serverTime: now,
-    match: { ...match, ...(match.phase === 'complete' ? { answer } : {}) },
+    match: {
+      ...match,
+      ...(room.game === 'phrases'
+        ? { phraseTemplate: phraseTemplate(answer) }
+        : {}),
+      ...(match.phase === 'complete' ? { answer } : {}),
+    },
     players: room.players.map(({ attempts, ...p }) => ({
       ...p,
       count: attempts.length,
@@ -242,7 +281,7 @@ export function projectRoom(
       timerEndsAt:
         match.phase === 'lobby'
           ? null
-          : roundDeadline(match.startsAt, attempts),
+          : roundDeadline(match.startsAt, attempts, room.game),
       timerStoppedAt:
         solved({ attempts }) || attempts.length >= MAX_ATTEMPTS
           ? match.startsAt! + attempts.at(-1)!.elapsedMs

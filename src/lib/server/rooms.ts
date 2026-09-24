@@ -1,7 +1,7 @@
 import 'server-only';
 import { randomInt, randomUUID } from 'node:crypto';
 import { transaction, databaseTime, type DB } from './db';
-import { ALLOWED_WORDS, pickAnswer } from './words';
+import { puzzleWords, pickPuzzle } from './puzzles';
 import { applyAction, projectRoom } from '../game/rules';
 import {
   GameError,
@@ -9,6 +9,7 @@ import {
   type Mode,
   type Room,
   type BotDifficulty,
+  type GameKind,
 } from '../game/types';
 import { advanceBots } from './bots';
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -57,7 +58,7 @@ async function persist(db: DB, room: Room) {
   for (const p of room.players) {
     for (const [i, a] of p.attempts.entries())
       await db.query(
-        `insert into public.guess_attempts(match_id,player_id,attempt,word,marks,elapsed_ms,request_id) values($1,$2,$3,$4,$5::text::jsonb,$6,$7) on conflict do nothing`,
+        `insert into public.guess_attempts(match_id,player_id,attempt,word,marks,elapsed_ms,request_id,game) values($1,$2,$3,$4,$5::text::jsonb,$6,$7,$8) on conflict do nothing`,
         [
           m.id,
           p.id,
@@ -66,6 +67,7 @@ async function persist(db: DB, room: Room) {
           JSON.stringify(a.marks),
           a.elapsedMs,
           a.requestId,
+          room.game ?? 'words',
         ],
       );
     await db.query(
@@ -88,6 +90,7 @@ export async function createRoom(
   name: string,
   mode: Mode,
   botDifficulty: BotDifficulty = 'hard',
+  game: GameKind = 'words',
 ) {
   await transaction((db) => rateLimit(db, `create:${playerId}`, 12, 3600));
   return transaction(async (db) => {
@@ -112,6 +115,7 @@ export async function createRoom(
       code,
       mode,
       botDifficulty,
+      game,
       revision: 0,
       createdAt: now,
       expiresAt: now + 86400000,
@@ -129,7 +133,7 @@ export async function createRoom(
         id: randomUUID(),
         round: 1,
         phase: 'lobby',
-        answer: pickAnswer(),
+        answer: pickPuzzle(game),
         startsAt: null,
         deadline: null,
         endedAt: null,
@@ -179,8 +183,8 @@ export async function roomOperation(
           playerId,
           action,
           now,
-          ALLOWED_WORDS,
-          () => pickAnswer(candidate.match.answer),
+          puzzleWords(candidate.game),
+          () => pickPuzzle(candidate.game, candidate.match.answer),
           randomUUID,
         );
         room = candidate;

@@ -2327,3 +2327,205 @@ input::placeholder {
 .difficulty-picker:disabled label {
   cursor: not-allowed;
 }
+
+/* Shared navigation and phrase-only board rules leave Words unchanged. */
+.game-switch {
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 13px;
+}
+.game-switch a {
+  padding: 7px 12px;
+  border-radius: 6px;
+}
+.game-switch a[aria-current='page'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.phrase-mode .present {
+  background: #d99332;
+  border-color: #d99332;
+  color: var(--on-accent);
+}
+.elsewhere {
+  background: #2465a0;
+  border-color: #2465a0;
+  color: white;
+}
+.phrase-mode .start-panel h1 {
+  font-size: clamp(44px, 8vw, 72px);
+}
+.phrase-preview {
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  container-type: inline-size;
+}
+.phrase-help {
+  margin-top: 18px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.phrase-help summary {
+  color: var(--accent);
+  cursor: pointer;
+}
+.phrase-help summary:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+.phrase-instructions p {
+  color: var(--muted);
+  line-height: 1.65;
+  font-size: 14px;
+  margin: 14px 0;
+}
+.phrase-instructions .legend-list p {
+  margin: 0;
+}
+.phrase-instructions .legend-list .tile {
+  width: 36px;
+  font-size: 18px;
+}
+.phrase-mode .board-wrap {
+  width: 100%;
+}
+.board.phrase-board {
+  width: 100%;
+  max-width: none;
+  gap: 18px;
+}
+.phrase-guess {
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  container-type: inline-size;
+}
+.phrase-guess-label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.phrase-words {
+  --phrase-tile: min(
+    34px,
+    calc((100cqw - var(--phrase-columns) * 3px) / var(--phrase-columns))
+  );
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 18px;
+  width: 100%;
+}
+.phrase-word {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+.phrase-word .tile {
+  width: var(--phrase-tile);
+  height: var(--phrase-tile);
+  font-size: min(20px, calc(var(--phrase-tile) * 0.62));
+  border-radius: 4px;
+}
+.phrase-punctuation {
+  font-weight: 700;
+  font-size: min(22px, var(--phrase-tile));
+}
+.phrase-arena {
+  grid-template-columns: minmax(0, 1fr) 230px 150px;
+  max-width: 1200px;
+  gap: 24px;
+}
+.phrase-mode .your-lane {
+  min-width: 0;
+}
+.phrase-entry {
+  margin-bottom: 16px;
+}
+.phrase-entry input {
+  letter-spacing: 1px;
+}
+.phrase-entry p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 7px;
+}
+.phrase-mode .arena-legend {
+  flex-wrap: wrap;
+}
+.phrase-mode .answer-reveal {
+  display: block;
+  container-type: inline-size;
+  padding: 20px;
+}
+.phrase-mode .answer-reveal > span {
+  display: block;
+  margin-bottom: 15px;
+}
+.phrase-mode .answer-reveal > .phrase-words {
+  display: flex;
+  gap: 14px 18px;
+  justify-content: center;
+}
+.phrase-mode .result-player {
+  min-width: 0;
+}
+.phrase-mode .compact .phrase-guess {
+  padding: 10px;
+}
+.phrase-mode .compact .phrase-words {
+  --phrase-tile: min(
+    27px,
+    calc((100cqw - var(--phrase-columns) * 3px) / var(--phrase-columns))
+  );
+}
+.phrase-mode .keyboard {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  background: var(--paper);
+  padding: 10px 0;
+}
+@media (max-width: 1100px) {
+  .phrase-arena {
+    grid-template-columns: minmax(0, 1fr) 230px;
+  }
+}
+@media (max-width: 800px) {
+  .site-header {
+    height: auto;
+    min-height: 100px;
+    flex-wrap: wrap;
+    padding: 14px 0;
+    gap: 12px;
+  }
+  .game-switch {
+    order: 3;
+    justify-content: center;
+    width: 100%;
+  }
+}
+@media (max-width: 640px) {
+  .phrase-arena {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .phrase-mode .result-players {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .phrase-guess {
+    padding: 10px;
+  }
+  .phrase-mode .arena-legend {
+    display: flex;
+  }
+}
