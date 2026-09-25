@@ -51,14 +51,21 @@ it('keyboard supports accessible submit/delete and disabled interaction', () => 
   expect(onKey).toHaveBeenCalledTimes(2);
 });
 
-it('shows the server-based fallback countdown and clearly identifies an assigned bot', () => {
+it('explains the explicit bot choice and clearly identifies an assigned bot', () => {
   const room = fixture();
   room.match.phase = 'lobby';
   room.players = room.players.slice(0, 1);
   const view = projectRoom(room, p1, 1000);
-  const { rerender } = render(<BotNotice room={view} now={11000} />);
+  const { rerender } = render(<BotNotice room={view} />);
   expect(
-    screen.getByText('A bot joins in 35s if no one arrives.'),
+    screen.getByText('Ready up to choose a bot, or wait for a friend to join.'),
+  ).toBeTruthy();
+  view.players[0].ready = true;
+  rerender(<BotNotice room={view} />);
+  expect(
+    screen.getByText(
+      'Keep waiting for a friend, or choose Play with bot to start now.',
+    ),
   ).toBeTruthy();
   view.players.push({
     ...view.players[0],
@@ -66,17 +73,17 @@ it('shows the server-based fallback countdown and clearly identifies an assigned
     name: 'Pip',
     isBot: true,
   });
-  rerender(<BotNotice room={view} now={46000} />);
+  rerender(<BotNotice room={view} />);
   expect(screen.getByRole('status').textContent).toContain(
     'Pip is your bot opponent.',
   );
   view.mode = 'coop';
-  rerender(<BotNotice room={view} now={46000} />);
+  rerender(<BotNotice room={view} />);
   expect(screen.getByRole('status').textContent).toContain('bot teammate');
 });
-it('does not show a bot countdown once two humans join', () => {
+it('does not offer a bot once two humans join', () => {
   const { container } = render(
-    <BotNotice room={projectRoom(fixture(), p1, 1000)} now={46000} />,
+    <BotNotice room={projectRoom(fixture(), p1, 1000)} />,
   );
   expect(container.textContent).toBe('');
 });
@@ -97,10 +104,10 @@ it.each([
     room.match.phase = 'lobby';
     room.players = room.players.slice(0, 1);
     const view = projectRoom(room, p1, 1000);
-    const { rerender } = render(<BotNotice room={view} now={11000} />);
+    const { rerender } = render(<BotNotice room={view} />);
     expect(screen.getByText(`${name} · ${label} difficulty`)).toBeTruthy();
     view.players.push({ ...view.players[0], id: 'bot', name, isBot: true });
-    rerender(<BotNotice room={view} now={46000} />);
+    rerender(<BotNotice room={view} />);
     expect(screen.getByRole('status').textContent).toContain(
       `${name} is your bot opponent.`,
     );
@@ -108,7 +115,7 @@ it.each([
       `${label} difficulty.`,
     );
     view.mode = 'coop';
-    rerender(<BotNotice room={view} now={46000} />);
+    rerender(<BotNotice room={view} />);
     expect(screen.getByRole('status').textContent).toContain(
       `${name} is your bot teammate.`,
     );

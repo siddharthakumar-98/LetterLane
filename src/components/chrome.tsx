@@ -106,11 +106,11 @@ export function HowToPlay({ game = 'words' }: { game?: GameKind }) {
           </>
         )}
         <p>
-          <strong>Playing solo?</strong> If no second player joins your room
-          after 45 seconds, your chosen bot fills the open seat: Pipsqueak
-          (Easy), Pipper (Medium), or Pip (Hard). Easier bots take longer
-          between guesses and use simpler word choices. Each plays from its own
-          clues and is always ready for a rematch.
+          <strong>Playing solo?</strong> Ready up, then choose Play with bot
+          while the second seat is open. Your chosen companion joins
+          immediately: Pipsqueak (Easy), Pipper (Medium), or Pip (Hard). Easier
+          bots take longer between guesses and use simpler word choices. Each
+          plays from its own clues and is always ready for a rematch.
         </p>
         <button
           className="button primary full"

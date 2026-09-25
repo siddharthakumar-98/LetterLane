@@ -31,9 +31,9 @@ No credentials are needed for local mode. Data persists in `.letterlane/` across
 
 ## Bot companions and difficulty
 
-If a room has only its creator after **45 seconds**, the selected bot fills the second seat. The lobby shows a countdown, the selected name and difficulty, and clearly labels the companion as a bot in the lobby, match header, and results. The creator still chooses **I'm ready**; if already ready, the normal three-second countdown starts when the bot joins. This works in duel and co-op. Invite friends before the seat fills to play the original two-human game.
+When a room has only its creator, choose **I’m ready**, then **Play with bot** to fill the open seat immediately with the selected companion. You can also keep waiting for a friend; a bot never joins automatically. The normal three-second countdown begins when you choose the bot. This works in Words and Phrases, in duel and co-op. The companion is clearly labeled as a bot in the lobby, match header, and results.
 
-The 45-second bot search starts at room creation, uses the database clock, and survives refreshes. Two-human rooms never receive a bot, including when a human disconnects. Once a bot occupies the seat, it counts toward the existing two-player capacity; a later invitation cannot displace it. If a human join obtains the lock before bot assignment, that human gets the seat.
+Readiness survives refreshes, so a ready solo player can still choose **Play with bot** after reloading. The server requires a ready human and exactly one player in the lobby. Two-human rooms never receive a bot, including when a human disconnects. Once a bot occupies the seat, a later invitation cannot displace it. If a human join obtains the room lock before bot selection, that human gets the seat and the bot request is rejected.
 
 Choose the companion when creating a room:
 
@@ -49,7 +49,7 @@ All levels use only their own evaluated guesses and the existing answer vocabula
 
 **Upgrading an existing Supabase database:** apply `supabase/migrations/202609110001_bots.sql` before deploying v1.1, or run `pnpm db:migrate` if you used the migration runner originally. This adds `players.is_bot` with a default of false; existing identities, rooms and match history are preserved. Local mode applies this additive migration on startup. No new credentials, services or configuration variables are required.
 
-Bot assignment and moves run during authenticated room requests under the same database row lock as human actions. The existing one-second poll wakes them, so a visible room gains a bot on the first request at or after 45 seconds. Pending moves are stored privately in PostgreSQL. Multiple tabs cannot create extra bots or duplicate turns. If every browser is closed or offline, the bot pauses until another request arrives and then takes at most one due move, with the actual server timestamp; it does not replay a burst of missed guesses.
+Bot selection and moves run during authenticated room requests under the same database row lock as human actions. Only an explicit **Play with bot** request assigns a bot; the existing one-second poll advances its turns after assignment. Pending moves are stored privately in PostgreSQL. Multiple tabs cannot create extra bots or duplicate turns. If every browser is closed or offline, the bot pauses until another request arrives and then takes at most one due move, with the actual server timestamp; it does not replay a burst of missed guesses.
 
 ## Standard local development
 
@@ -174,7 +174,7 @@ Schedule database maintenance appropriate to your retention policy (SQL examples
 
 ## Letterlane Phrases
 
-Choose **Phrases** in the shared Words/Phrases navigation, or open **/phrases**. This is the same private two-player game with whole sayings instead of five-letter words: duel/co-op, six guesses, fallback bots and difficulty choices, private opponent guesses, saved rooms, and rematches all use the shared engine. Words remains at `/`, and both types retain their existing `/room/<code>` invitation URLs.
+Choose **Phrases** in the shared Words/Phrases navigation, or open **/phrases**. This is the same private two-player game with whole sayings instead of five-letter words: duel/co-op, six guesses, optional bots and difficulty choices, private opponent guesses, saved rooms, and rematches all use the shared engine. Words remains at `/`, and both types retain their existing `/room/<code>` invitation URLs.
 
 The initial collection has **51 phrases, at most seven words each**, derived from [Wikipedia's List of proverbial phrases](https://en.wikipedia.org/wiki/List_of_proverbial_phrases). It lives in `src/lib/server/phrases/proverbs.json`; see the adjacent `SOURCES.md` for the pinned source, adaptations, dictionary provenance, and how to add a collection. Wikipedia is never contacted during play. The eight-word “Beauty is in the eye of the beholder” and the eleven-word journey example are excluded by the limit.
 
@@ -193,4 +193,4 @@ Puzzle selection remains **random per room and rematch**, excluding the immediat
 
 **Database upgrade:** apply `supabase/migrations/202609220001_phrases.sql` before deploying this build (`pnpm db:migrate` with the existing database configuration). It adds the guess type and permits compact phrase letters plus one mark per letter while preserving the five-letter Words constraint. Existing rows default to Words. Local mode applies it automatically. No hosted database has been modified by this implementation.
 
-Run `./dev.sh`, open `http://127.0.0.1:3000/phrases`, create a room and invite a second browser profile (or wait for a bot). Run `pnpm test` for rules, validation, duplicate scoring, datasets, mode isolation and database tests; run `pnpm build && pnpm test:e2e` for the Words and Phrases browser flows. Browser tests use the existing local-only deterministic test selection, never production puzzles. Phrase bots use public word lengths and their own feedback to choose valid words; their guesses can be grammatical nonsense because they do not receive or search the answer collection.
+Run `./dev.sh`, open `http://127.0.0.1:3000/phrases`, create a room and invite a second browser profile (or ready up and choose **Play with bot**). Run `pnpm test` for rules, validation, duplicate scoring, datasets, mode isolation and database tests; run `pnpm build && pnpm test:e2e` for the Words and Phrases browser flows. Browser tests use the existing local-only deterministic test selection, never production puzzles. Phrase bots use public word lengths and their own feedback to choose valid words; their guesses can be grammatical nonsense because they do not receive or search the answer collection.

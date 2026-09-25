@@ -172,8 +172,7 @@ export async function roomOperation(
     if (participant?.isBot || (!participant && action?.type !== 'join'))
       throw new GameError('Join this room to play.', 403);
     const before = JSON.stringify(room);
-    // Give an incoming human the open seat if no bot has claimed it yet.
-    if (action?.type !== 'join' || participant) advanceBots(room, now);
+    advanceBots(room, now);
     let rejected: GameError | undefined;
     if (action) {
       const candidate = structuredClone(room);

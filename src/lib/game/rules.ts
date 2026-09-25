@@ -1,3 +1,5 @@
+import { BOT_PROFILES } from './bot-difficulty';
+import { canPlayWithBot } from './matchmaking';
 import {
   playableLetters,
   phraseTemplate,
@@ -151,7 +153,22 @@ export function applyAction(
   if (!player) throw new GameError('Join this room to play.', 403);
   player.lastSeen = now;
   if (action.type === 'heartbeat') return room;
-  if (action.type === 'ready') {
+  if (action.type === 'play-bot') {
+    if (!canPlayWithBot(room, playerId))
+      throw new GameError(
+        'Ready up in a room with an open seat to play with a bot.',
+      );
+    room.players.push({
+      id: nextId(),
+      name: BOT_PROFILES[room.botDifficulty ?? 'hard'].name,
+      isBot: true,
+      ready: true,
+      rematch: false,
+      lastSeen: now,
+      attempts: [],
+    });
+  }
+  if (action.type === 'ready' || action.type === 'play-bot') {
     if (room.match.phase !== 'lobby')
       throw new GameError('The match has already started.');
     player.ready = true;

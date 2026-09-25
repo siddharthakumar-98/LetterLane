@@ -179,28 +179,28 @@ it('applies Supabase RLS policies and hides private state from authenticated rol
   }
 });
 
-async function expireSearch(room: RoomView) {
-  await transaction(async (db) => {
-    await db.query(
-      "update private.room_states set state=jsonb_set(state,'{createdAt}',to_jsonb((extract(epoch from clock_timestamp())*1000-45001)::bigint)) where room_id=$1",
-      [room.id],
-    );
-  });
+async function readyForBot(room: RoomView) {
+  await roomOperation(room.code, room.selfId, { type: 'ready' });
 }
-it('a human join cancels bot fallback while a concurrent bot claim cannot create a third seat', async () => {
+it('a human join prevents bot selection while a concurrent bot request cannot create a third seat', async () => {
   const room = await createRoom(p1, 'Ada', 'duel');
-  await expireSearch(room);
+  await readyForBot(room);
   await roomOperation(room.code, p2, { type: 'join', name: 'Max' });
   expect(
     (await roomOperation(room.code, p1)).players.some((p) => p.isBot),
   ).toBe(false);
+  await expect(
+    roomOperation(room.code, p1, { type: 'play-bot' }),
+  ).rejects.toThrow('open seat');
   const racing = await createRoom(p1, 'Ada', 'duel');
-  await expireSearch(racing);
+  await readyForBot(racing);
   const outcomes = await Promise.allSettled([
-    roomOperation(racing.code, p1),
+    roomOperation(racing.code, p1, { type: 'play-bot' }),
     roomOperation(racing.code, p2, { type: 'join', name: 'Max' }),
   ]);
-  expect(outcomes[0].status).toBe('fulfilled');
+  expect(
+    outcomes.filter((outcome) => outcome.status === 'fulfilled'),
+  ).toHaveLength(1);
   const view = await roomOperation(racing.code, p1);
   expect(view.players).toHaveLength(2);
   const rows = await transaction((db) =>
@@ -216,7 +216,15 @@ it('a human join cancels bot fallback while a concurrent bot claim cannot create
 it('serializes bot assignment and due guesses, masks state, rejects impersonation and supports rematches', async () => {
   const room = await createRoom(p1, 'Ada', 'duel');
   await roomOperation(room.code, p1, { type: 'ready' });
-  await expireSearch(room);
+  await readyForBot(room);
+  const requests = await Promise.allSettled(
+    Array.from({ length: 8 }, () =>
+      roomOperation(room.code, p1, { type: 'play-bot' }),
+    ),
+  );
+  expect(
+    requests.filter((request) => request.status === 'fulfilled'),
+  ).toHaveLength(1);
   const snapshots = await Promise.all(
     Array.from({ length: 8 }, () => roomOperation(room.code, p1)),
   );
@@ -281,8 +289,8 @@ it('serializes bot assignment and due guesses, masks state, rejects impersonatio
 it('commits a due bot turn even when a human action is rejected', async () => {
   const room = await createRoom(p1, 'Ada', 'duel');
   await roomOperation(room.code, p1, { type: 'ready' });
-  await expireSearch(room);
-  await roomOperation(room.code, p1);
+  await readyForBot(room);
+  await roomOperation(room.code, p1, { type: 'play-bot' });
   await transaction(async (db) => {
     await db.query(
       `update private.room_states set state=jsonb_set(jsonb_set(jsonb_set(state,'{match,phase}','"active"'),'{match,startsAt}',to_jsonb((extract(epoch from clock_timestamp())*1000-20000)::bigint)),'{botNextGuessAt}','0') where room_id=$1`,
@@ -348,8 +356,10 @@ it.each([
     expect((await roomOperation(created.code, owner)).botDifficulty).toBe(
       difficulty,
     );
-    await expireSearch(created);
-    const assigned = await roomOperation(created.code, owner);
+    await readyForBot(created);
+    const assigned = await roomOperation(created.code, owner, {
+      type: 'play-bot',
+    });
     expect(assigned.players.find((p) => p.isBot)).toMatchObject({
       name,
       ready: true,

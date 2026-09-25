@@ -24,6 +24,7 @@ import type { PlayerView, RoomView } from '@/lib/game/types';
 import { nameSchema } from '@/lib/game/validation';
 import { phraseMetadata, playableLetters } from '@/lib/game/phrases';
 import { PhraseInstructions } from './phrase-instructions';
+import { canPlayWithBot } from '@/lib/game/matchmaking';
 import { BotNotice, BotTag } from './bot-notice';
 function PlayerBadge({
   player,
@@ -67,6 +68,7 @@ function Lobby({
   now,
   busy,
   onReady,
+  onPlayBot,
   copied,
   onCopy,
 }: {
@@ -74,6 +76,7 @@ function Lobby({
   now: number;
   busy: boolean;
   onReady: () => void;
+  onPlayBot: () => void;
   copied: boolean;
   onCopy: () => void;
 }) {
@@ -99,7 +102,7 @@ function Lobby({
             ? 'Send them the link. The good kind of rivalry is one click away.'
             : 'Take a breath. You’ll start together when you’re both ready.'}
         </p>
-        <BotNotice room={room} now={now} />
+        <BotNotice room={room} />
         <button
           className="room-code-card"
           onClick={onCopy}
@@ -138,14 +141,18 @@ function Lobby({
         </div>
         <button
           className="button primary full"
-          disabled={busy || me.ready}
-          onClick={onReady}
+          disabled={busy || (me.ready && !canPlayWithBot(room, room.selfId))}
+          onClick={canPlayWithBot(room, room.selfId) ? onPlayBot : onReady}
         >
-          {me.ready
-            ? 'You’re ready. Waiting for your friend…'
-            : busy
-              ? 'Getting ready…'
-              : 'I’m ready'}
+          {canPlayWithBot(room, room.selfId)
+            ? busy
+              ? 'Starting with bot…'
+              : 'Play with bot'
+            : me.ready
+              ? 'You’re ready. Waiting for your friend…'
+              : busy
+                ? 'Getting ready…'
+                : 'I’m ready'}
           {!me.ready && <ArrowUpRight size={20} />}
         </button>
         <p className="privacy-note">
@@ -447,6 +454,7 @@ export function RoomGame({ code }: { code: string }) {
             now={now}
             busy={busy}
             onReady={() => void act({ type: 'ready' })}
+            onPlayBot={() => void act({ type: 'play-bot' })}
             copied={copied}
             onCopy={() => void copy()}
           />

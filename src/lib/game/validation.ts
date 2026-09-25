@@ -25,6 +25,7 @@ export const createSchema = z
 export const actionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('join'), name: nameSchema }).strict(),
   z.object({ type: z.literal('ready') }).strict(),
+  z.object({ type: z.literal('play-bot') }).strict(),
   z.object({ type: z.literal('rematch') }).strict(),
   z.object({ type: z.literal('heartbeat') }).strict(),
   z

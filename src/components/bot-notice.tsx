@@ -1,5 +1,5 @@
-import { Bot, Timer } from 'lucide-react';
-import { BOT_WAIT_MS } from '@/lib/game/matchmaking';
+import { Bot } from 'lucide-react';
+import { canPlayWithBot } from '@/lib/game/matchmaking';
 import type { RoomView } from '@/lib/game/types';
 import { BOT_PROFILES } from '@/lib/game/bot-difficulty';
 
@@ -11,7 +11,7 @@ export function BotTag() {
   );
 }
 
-export function BotNotice({ room, now }: { room: RoomView; now: number }) {
+export function BotNotice({ room }: { room: RoomView }) {
   const profile = BOT_PROFILES[room.botDifficulty ?? 'hard'];
   const bot = room.players.find((player) => player.isBot);
   if (bot)
@@ -32,25 +32,16 @@ export function BotNotice({ room, now }: { room: RoomView; now: number }) {
       </div>
     );
   if (room.players.length !== 1) return null;
-  const seconds = Math.max(
-    0,
-    Math.ceil(
-      (room.createdAt + BOT_WAIT_MS - Math.max(now, room.serverTime)) / 1000,
-    ),
-  );
   return (
     <div className="bot-notice">
-      <Timer size={20} aria-hidden="true" />
+      <Bot size={20} aria-hidden="true" />
       <div>
         <strong>Waiting for a second player</strong>
-        <p aria-hidden="true">
-          {seconds > 0
-            ? `A bot joins in ${seconds}s if no one arrives.`
-            : 'Bringing in your bot companion…'}
+        <p>
+          {canPlayWithBot(room, room.selfId)
+            ? 'Keep waiting for a friend, or choose Play with bot to start now.'
+            : 'Ready up to choose a bot, or wait for a friend to join.'}
         </p>
-        <span className="sr-only">
-          A bot joins after 45 seconds if no second player arrives.
-        </span>
         <p>
           {profile.name} · {profile.label} difficulty
         </p>
