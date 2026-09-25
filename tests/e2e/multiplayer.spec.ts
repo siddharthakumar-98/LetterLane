@@ -53,6 +53,9 @@ test('two guests create, join, ready, play concurrently, reconnect, finish and r
     await expect(
       page.getByRole('heading', { name: 'Two minds, all set?' }),
     ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Play with bot', exact: true }),
+    ).toHaveCount(0);
     await third.goto('/');
     await third.getByLabel('What should we call you?').fill('Third');
     await third.getByLabel('Room code', { exact: true }).fill(code);

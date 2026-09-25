@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { BOT_WAIT_MS } from '../src/lib/game/matchmaking';
 import {
   advanceBots,
   type BotServices,
@@ -26,7 +25,11 @@ function waiting() {
   room.match.startsAt = null;
   return room;
 }
-const human = (room: Room, type: 'ready' | 'rematch', now: number) =>
+const human = (
+  room: Room,
+  type: 'ready' | 'rematch' | 'play-bot',
+  now: number,
+) =>
   applyAction(
     room,
     p1,
@@ -40,28 +43,41 @@ const bot = (room: Room) => room.players.find((p) => p.isBot)!;
 function started() {
   const room = waiting();
   human(room, 'ready', 1000);
+  human(room, 'play-bot', 46000);
   advanceBots(room, 46000, services);
   return room;
 }
 
-describe('45-second automatic companion', () => {
-  it('does not join early; fills precisely one empty seat at the boundary', () => {
+describe('player-selected companion', () => {
+  it('never adds a bot automatically, even after the old waiting deadline', () => {
     const room = waiting();
-    const original = structuredClone(room);
-    advanceBots(room, room.createdAt + BOT_WAIT_MS - 1, services);
-    expect(room).toEqual(original);
-    advanceBots(room, room.createdAt + BOT_WAIT_MS, services);
-    expect(room.players).toHaveLength(2);
-    expect(bot(room)).toMatchObject({
-      name: 'Pip',
-      ready: true,
-      isBot: true,
-      attempts: [],
-    });
+    advanceBots(room, 60000, services);
+    expect(room.players).toHaveLength(1);
+    human(room, 'ready', 60001);
+    advanceBots(room, 120000, services);
+    expect(room.players).toHaveLength(1);
     expect(room.match.phase).toBe('lobby');
-    advanceBots(room, 46001, services);
-    expect(room.players).toHaveLength(2);
   });
+  it.each(['words', 'phrases'] as const)(
+    'starts %s immediately on an eligible request',
+    (game) => {
+      const room = waiting();
+      room.game = game;
+      human(room, 'ready', 1000);
+      human(room, 'play-bot', 1001);
+      expect(room.players).toHaveLength(2);
+      expect(bot(room)).toMatchObject({
+        name: 'Pip',
+        ready: true,
+        isBot: true,
+        attempts: [],
+      });
+      expect(room.match.phase).toBe('countdown');
+      expect(room.match.startsAt).toBe(4001);
+      expect(() => human(room, 'play-bot', 1002)).toThrow('open seat');
+      expect(room.players).toHaveLength(2);
+    },
+  );
   it('preserves the human ready choice and the shared three-second countdown', () => {
     const room = started();
     expect(room.match.phase).toBe('countdown');
@@ -73,20 +89,29 @@ describe('45-second automatic companion', () => {
     expect(room.match.phase).toBe('active');
     expect(bot(room).attempts).toHaveLength(0);
   });
-  it('lets an unready creator choose when to begin', () => {
+  it('rejects unready players and non-members', () => {
     const room = waiting();
-    advanceBots(room, 46000, services);
+    expect(() => human(room, 'play-bot', 1000)).toThrow('Ready up');
+    expect(() =>
+      applyAction(
+        room,
+        p2,
+        { type: 'play-bot' },
+        1000,
+        ALLOWED_WORDS,
+        () => 'BLOOM',
+        randomUUID,
+      ),
+    ).toThrow('Join');
+    expect(room.players).toHaveLength(1);
     expect(room.match.startsAt).toBeNull();
-    human(room, 'ready', 50000);
-    advanceBots(room, 50000, services);
-    expect(room.match.startsAt).toBe(53000);
-    expect(room.botNextGuessAt).toBe(61000);
   });
   it('never replaces a human, including a disconnected or unready opponent', () => {
     for (const phase of ['lobby', 'active', 'complete'] as const) {
       const room = fixture();
       room.match.phase = phase;
       room.players[1].lastSeen = 0;
+      expect(() => human(room, 'play-bot', 50000)).toThrow('open seat');
       advanceBots(room, 50000, services);
       expect(room.players.map((p) => p.id)).toEqual([p1, p2]);
       expect(room.players.some((p) => p.isBot)).toBe(false);
@@ -106,10 +131,11 @@ describe('45-second automatic companion', () => {
     advanceBots(ended, 46000, services);
     expect(ended.players).toHaveLength(1);
   });
-  it('restores waiting time and pending moves from persisted state', () => {
+  it('restores readiness and pending moves from persisted state', () => {
     const room = JSON.parse(JSON.stringify(waiting())) as Room;
     advanceBots(room, 46000, services);
     human(room, 'ready', 47000);
+    human(room, 'play-bot', 47000);
     advanceBots(room, 47000, services);
     const restored = JSON.parse(JSON.stringify(room)) as Room;
     expect(restored.botNextGuessAt).toBe(58000);
@@ -294,6 +320,7 @@ describe('bot difficulty', () => {
       const room = waiting();
       room.botDifficulty = difficulty;
       human(room, 'ready', 1000);
+      human(room, 'play-bot', 46000);
       // Exercise the real random scheduler, including its first and subsequent turns.
       advanceBots(room, 46000);
       expect(bot(room).name).toBe(name);

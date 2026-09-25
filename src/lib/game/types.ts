@@ -65,6 +65,7 @@ export type RoomView = Omit<Room, 'players' | 'match' | 'botNextGuessAt'> & {
 export type Action =
   | { type: 'join'; name: string }
   | { type: 'ready' }
+  | { type: 'play-bot' }
   | { type: 'rematch' }
   | { type: 'heartbeat' }
   | { type: 'guess'; word: string; requestId: string; matchId: string };

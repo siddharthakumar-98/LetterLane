@@ -22,8 +22,9 @@ import { initialTime, timeBonus } from '@/lib/game/round-clock';
 import { useRoom } from '@/lib/client/use-room';
 import type { PlayerView, RoomView } from '@/lib/game/types';
 import { nameSchema } from '@/lib/game/validation';
-import { phraseMetadata, playableLetters } from '@/lib/game/phrases';
+import { phraseMetadata } from '@/lib/game/phrases';
 import { PhraseInstructions } from './phrase-instructions';
+import { canPlayWithBot } from '@/lib/game/matchmaking';
 import { BotNotice, BotTag } from './bot-notice';
 function PlayerBadge({
   player,
@@ -67,6 +68,7 @@ function Lobby({
   now,
   busy,
   onReady,
+  onPlayBot,
   copied,
   onCopy,
 }: {
@@ -74,6 +76,7 @@ function Lobby({
   now: number;
   busy: boolean;
   onReady: () => void;
+  onPlayBot: () => void;
   copied: boolean;
   onCopy: () => void;
 }) {
@@ -99,7 +102,7 @@ function Lobby({
             ? 'Send them the link. The good kind of rivalry is one click away.'
             : 'Take a breath. You’ll start together when you’re both ready.'}
         </p>
-        <BotNotice room={room} now={now} />
+        <BotNotice room={room} />
         <button
           className="room-code-card"
           onClick={onCopy}
@@ -138,14 +141,18 @@ function Lobby({
         </div>
         <button
           className="button primary full"
-          disabled={busy || me.ready}
-          onClick={onReady}
+          disabled={busy || (me.ready && !canPlayWithBot(room, room.selfId))}
+          onClick={canPlayWithBot(room, room.selfId) ? onPlayBot : onReady}
         >
-          {me.ready
-            ? 'You’re ready. Waiting for your friend…'
-            : busy
-              ? 'Getting ready…'
-              : 'I’m ready'}
+          {canPlayWithBot(room, room.selfId)
+            ? busy
+              ? 'Starting with bot…'
+              : 'Play with bot'
+            : me.ready
+              ? 'You’re ready. Waiting for your friend…'
+              : busy
+                ? 'Getting ready…'
+                : 'I’m ready'}
           {!me.ready && <ArrowUpRight size={20} />}
         </button>
         <p className="privacy-note">
@@ -351,7 +358,7 @@ export function RoomGame({ code }: { code: string }) {
     await act({ type: 'join', name: parsed.data });
   }
   const countdown = room?.match.startsAt
-    ? Math.max(0, Math.ceil((room.match.startsAt - now) / 1000))
+    ? Math.max(0, Math.ceil((room.match.startsAt - displayNow) / 1000))
     : 0;
   return (
     <div className={`page-shell room-shell ${phrases ? 'phrase-mode' : ''}`}>
@@ -447,6 +454,7 @@ export function RoomGame({ code }: { code: string }) {
             now={now}
             busy={busy}
             onReady={() => void act({ type: 'ready' })}
+            onPlayBot={() => void act({ type: 'play-bot' })}
             copied={copied}
             onCopy={() => void copy()}
           />
@@ -503,7 +511,9 @@ export function RoomGame({ code }: { code: string }) {
                   <h1 id="your-lane-title">Your lane</h1>
                   <span>{me?.count ?? 0} OF 6 GUESSES</span>
                 </div>
-                <div className="board-wrap">
+                <div
+                  className={`board-wrap ${phase === 'countdown' ? 'is-counting-down' : ''}`}
+                >
                   <Board
                     attempts={me?.attempts ?? []}
                     input={input}
@@ -548,41 +558,6 @@ export function RoomGame({ code }: { code: string }) {
                     </span>
                   )}
                 </div>
-                {phrases && (
-                  <div className="phrase-entry">
-                    <label className="field-label" htmlFor="phrase-letters">
-                      Edit your phrase letters
-                    </label>
-                    <input
-                      id="phrase-letters"
-                      value={input}
-                      disabled={!canGuess}
-                      autoComplete="off"
-                      autoCapitalize="characters"
-                      spellCheck={false}
-                      aria-describedby="phrase-entry-hint"
-                      onChange={(event) => {
-                        setInput(
-                          playableLetters(event.target.value).slice(
-                            0,
-                            letterCount,
-                          ),
-                        );
-                        setError('');
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          event.preventDefault();
-                          void key('Enter');
-                        }
-                      }}
-                    />
-                    <p id="phrase-entry-hint">
-                      Type or paste letters here, or use the keyboard below. You
-                      can move the cursor to correct any word.
-                    </p>
-                  </div>
-                )}
                 <Keyboard
                   attempts={me?.attempts ?? []}
                   onKey={(value) => void key(value)}

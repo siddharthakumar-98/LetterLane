@@ -153,13 +153,8 @@ it('recovers existing double-encoded rooms and repairs them on the next action',
 
 it('persists bot joins, guesses, reconnection and rematches through Postgres.js', async () => {
   const created = await createRoom(p1, 'Ada', 'coop');
-  await transaction((tx) =>
-    tx.query(
-      `update private.room_states set state=jsonb_set(state,'{createdAt}',to_jsonb((extract(epoch from clock_timestamp())*1000-46000)::bigint)) where room_id=$1`,
-      [created.id],
-    ),
-  );
-  const ready = await roomOperation(created.code, p1, { type: 'ready' });
+  await roomOperation(created.code, p1, { type: 'ready' });
+  const ready = await roomOperation(created.code, p1, { type: 'play-bot' });
   const bot = ready.players.find((player) => player.isBot)!;
   expect(bot.ready).toBe(true);
   expect(ready.match.phase).toBe('countdown');

@@ -1,6 +1,5 @@
 import 'server-only';
 import { randomInt, randomUUID } from 'node:crypto';
-import { BOT_WAIT_MS } from '../game/matchmaking';
 import {
   advance,
   applyAction,
@@ -49,17 +48,6 @@ export function advanceBots(room: Room, now: number, services = production) {
       () => services.nextAnswer(room.match.answer, room.game),
       services.id,
     );
-  if (
-    room.match.phase === 'lobby' &&
-    room.players.length === 1 &&
-    !room.players[0].isBot &&
-    now >= room.createdAt + BOT_WAIT_MS
-  ) {
-    const id = services.id();
-    act(id, { type: 'join', name: BOT_PROFILES[difficulty].name });
-    room.players.find((player) => player.id === id)!.isBot = true;
-    act(id, { type: 'ready' });
-  }
   const bot = room.players.find((player) => player.isBot);
   if (!bot) return;
   const readyForRematch = () => {
