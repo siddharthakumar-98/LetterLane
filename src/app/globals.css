@@ -2393,6 +2393,17 @@ input::placeholder {
 .phrase-mode .board-wrap {
   width: 100%;
 }
+.phrase-mode .board-wrap.is-counting-down {
+  min-height: 280px;
+}
+.phrase-mode .countdown-overlay {
+  padding: 16px;
+  text-align: center;
+}
+.phrase-mode .countdown-overlay > strong {
+  flex-shrink: 0;
+  aspect-ratio: 1;
+}
 .board.phrase-board {
   width: 100%;
   max-width: none;
@@ -2447,18 +2458,6 @@ input::placeholder {
 }
 .phrase-mode .your-lane {
   min-width: 0;
-}
-.phrase-entry {
-  margin-bottom: 16px;
-}
-.phrase-entry input {
-  letter-spacing: 1px;
-}
-.phrase-entry p {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
-  margin-top: 7px;
 }
 .phrase-mode .arena-legend {
   flex-wrap: wrap;

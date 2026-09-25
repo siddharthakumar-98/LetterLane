@@ -178,7 +178,7 @@ Choose **Phrases** in the shared Words/Phrases navigation, or open **/phrases**.
 
 The initial collection has **51 phrases, at most seven words each**, derived from [Wikipedia's List of proverbial phrases](https://en.wikipedia.org/wiki/List_of_proverbial_phrases). It lives in `src/lib/server/phrases/proverbs.json`; see the adjacent `SOURCES.md` for the pinned source, adaptations, dictionary provenance, and how to add a collection. Wikipedia is never contacted during play. The eight-word “Beauty is in the eye of the beholder” and the eleven-word journey example are excluded by the limit.
 
-Letters fill the displayed word lengths automatically. Spaces, apostrophes, commas, hyphens, and periods are shown but never consume tiles. Type with the shared on-screen keyboard, use your physical keyboard, or edit/paste letters in the phrase input. Words wrap as whole groups across lines. Accepted guesses remain visible; only the current empty attempt is expanded. The help dialog explains:
+Letters fill the displayed word lengths automatically. Spaces, apostrophes, commas, hyphens, and periods are shown but never consume tiles. Type directly into the phrase tiles using the shared on-screen keyboard or your physical keyboard. Use Backspace to correct letters and Enter to submit. Words wrap as whole groups across lines. Accepted guesses remain visible; only the current empty attempt is expanded. The help dialog explains:
 
 - **Green:** correct letter and position.
 - **Orange:** correct letter in the same word, wrong position.

@@ -1,6 +1,17 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import type { RoomView } from '../../src/lib/game/types';
+
+async function enterPhrase(page: Page, phrase: string) {
+  await expect(
+    page.getByRole('button', { name: 'Submit guess' }),
+  ).toBeEnabled();
+  await page.getByRole('heading', { name: 'Your lane', exact: true }).click();
+  const typed = await page.locator('.phrase-board .tile.typed').count();
+  for (let i = 0; i < typed; i++) await page.keyboard.press('Backspace');
+  await page.keyboard.type(phrase.replace(/[^a-z]/gi, ''));
+  await page.keyboard.press('Enter');
+}
 
 test('Words and Phrases switch cleanly, retain separate progress, validate, solve and rematch', async ({
   page,
@@ -64,12 +75,16 @@ test('Words and Phrases switch cleanly, retain separate progress, validate, solv
       page.getByRole('button', { name: 'I’m ready', exact: true }).click(),
       friend.getByRole('button', { name: 'I’m ready', exact: true }).click(),
     ]);
-    const input = page.getByLabel('Edit your phrase letters');
-    await expect(input).toBeEnabled();
+    const submit = page.getByRole('button', { name: 'Submit guess' });
+    await expect(submit).toBeEnabled();
+    await expect(page.locator('#phrase-letters, .phrase-entry')).toHaveCount(0);
     await expect(page.locator('.phrase-board .tile')).toHaveCount(27);
     await expect(page.locator('.phrase-board .phrase-word')).toHaveCount(5);
-    await input.fill('ACTIONS');
-    await input.press('Enter');
+    await page.getByRole('button', { name: 'A', exact: true }).click();
+    await expect(page.locator('.phrase-board .tile').first()).toHaveText('A');
+    await page.getByRole('button', { name: 'Delete letter' }).click();
+    await expect(page.locator('.phrase-board .tile').first()).toBeEmpty();
+    await enterPhrase(page, 'ACTIONS');
     await expect(
       page.getByText('Fill all 27 letters before submitting.'),
     ).toBeVisible();
@@ -81,13 +96,11 @@ test('Words and Phrases switch cleanly, retain separate progress, validate, solv
         'Words 1, 2, and 3 are not in word list',
       ],
     ]) {
-      await input.fill(guess);
-      await input.press('Enter');
+      await enterPhrase(page, guess);
       await expect(page.getByText(message, { exact: true })).toBeVisible();
       expect((await snapshot()).players[0].count).toBe(0);
     }
-    await input.fill('CAPTION BREAK MOTHER THEN WORLD');
-    await input.press('Enter');
+    await enterPhrase(page, 'CAPTION BREAK MOTHER THEN WORLD');
     await expect(
       page.getByRole('group', {
         name: 'Guess 1: CAPTION BREAK MOTHER THEN WORLD',
@@ -138,8 +151,7 @@ test('Words and Phrases switch cleanly, retain separate progress, validate, solv
       path: testInfo.outputPath('phrases-active.png'),
       fullPage: true,
     });
-    await input.fill('Actions speak louder than words');
-    await input.press('Enter');
+    await enterPhrase(page, 'Actions speak louder than words');
     await expect(
       page.getByRole('heading', { name: 'A win for both of you.' }),
     ).toBeVisible();
@@ -152,7 +164,7 @@ test('Words and Phrases switch cleanly, retain separate progress, validate, solv
       page.getByRole('button', { name: 'One more round' }).click(),
       friend.getByRole('button', { name: 'One more round' }).click(),
     ]);
-    await expect(input).toBeEnabled();
+    await expect(submit).toBeEnabled();
     const rematch = await snapshot();
     expect(rematch.match.round).toBe(2);
     expect(rematch.match.phraseTemplate).toBe(
@@ -163,8 +175,7 @@ test('Words and Phrases switch cleanly, retain separate progress, validate, solv
     await expect(page.locator('.phrase-board .phrase-punctuation')).toHaveText(
       "'",
     );
-    await input.fill('A leopard cant change its spots');
-    await input.press('Enter');
+    await enterPhrase(page, 'A leopard cant change its spots');
     await expect(
       page.getByRole('heading', { name: 'A win for both of you.' }),
     ).toBeVisible();
@@ -266,5 +277,72 @@ test('seven-word phrases and long words stay grouped on phone, tablet and deskto
         fullPage: true,
       });
     }
+  }
+});
+
+test('phrase countdown stays circular and fits a short board at every viewport', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/phrases');
+  await page.getByLabel('What should we call you?').fill('Countdown Player');
+  await page.getByRole('button', { name: 'Create a private room' }).click();
+  await expect(page).toHaveURL(/\/room\//);
+  const endpoint = `/api/rooms/${page.url().split('/').at(-1)}`;
+  const room = (await (await page.request.get(endpoint)).json()) as RoomView;
+  room.players[0].ready = true;
+  room.players.push({
+    ...room.players[0],
+    id: 'countdown-friend',
+    name: 'Friend',
+  });
+  // Hold the countdown so layout checks do not race the three-second start.
+  await page.route(`**${endpoint}`, (route) =>
+    route.fulfill({
+      json: {
+        ...room,
+        serverTime: Date.now(),
+        match: {
+          ...room.match,
+          phase: 'countdown',
+          startsAt: Date.now() + 3000,
+          phraseTemplate: '___ ___ ____',
+        },
+      },
+    }),
+  );
+  for (const width of [320, 768, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.reload();
+    await expect(page.locator('.countdown-overlay')).toBeVisible();
+    await expect(page.locator('.countdown-overlay > strong')).toHaveText(
+      /^[123]$/,
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    const dimensions = await page
+      .locator('.countdown-overlay')
+      .evaluate((overlay) => {
+        const circle = overlay.querySelector('strong')!.getBoundingClientRect();
+        const label = overlay.querySelector('span')!.getBoundingClientRect();
+        const caption = overlay.querySelector('p')!.getBoundingClientRect();
+        const board = overlay.parentElement!.getBoundingClientRect();
+        return {
+          square: Math.abs(circle.width - circle.height) < 1,
+          readable: circle.height >= 120,
+          fits:
+            label.top >= board.top &&
+            caption.bottom <= board.bottom &&
+            label.bottom < circle.top &&
+            circle.bottom < caption.top,
+        };
+      });
+    expect(dimensions).toEqual({ square: true, readable: true, fits: true });
+    await page.screenshot({
+      path: testInfo.outputPath(`countdown-${width}.png`),
+      fullPage: true,
+    });
   }
 });

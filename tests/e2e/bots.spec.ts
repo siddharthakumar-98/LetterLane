@@ -74,10 +74,8 @@ for (const game of ['words', 'phrases'] as const) {
     });
     await page.getByRole('heading', { name: 'Your lane', exact: true }).click();
     if (game === 'phrases') {
-      await page
-        .getByLabel('Edit your phrase letters')
-        .fill('Actions speak louder than words');
-      await page.getByLabel('Edit your phrase letters').press('Enter');
+      await page.keyboard.type('ACTIONSSPEAKLOUDERTHANWORDS');
+      await page.keyboard.press('Enter');
     } else {
       await page.keyboard.type('CRANE');
       await page.keyboard.press('Enter');
