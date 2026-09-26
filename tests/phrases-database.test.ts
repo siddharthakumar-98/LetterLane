@@ -51,6 +51,12 @@ it('isolates word and phrase progress, rejects whole invalid guesses, persists a
     'CAPTIONBREAKMOTHERTHENWORLD',
   );
   expect(accepted.players[0].attempts?.[0].marks).toHaveLength(27);
+  await expect(submit('ACTIONS NIFFS LOUDER THAN WORDS')).rejects.toMatchObject(
+    {
+      status: 422,
+      message: 'Word 2 is not in word list',
+    },
+  );
   await expect(submit('ACTIONS ZZZZZ LOUDER THAN WORDS')).rejects.toThrow(
     'Word 2 is not in word list',
   );
@@ -62,6 +68,15 @@ it('isolates word and phrase progress, rejects whole invalid guesses, persists a
   );
   const reloaded = await roomOperation(phrase.code, p1);
   expect(reloaded.players[0].attempts).toEqual(accepted.players[0].attempts);
+  expect(reloaded.players[0].count).toBe(1);
+  expect(reloaded.players[0].timerEndsAt).toBe(accepted.players[0].timerEndsAt);
+  const persisted = await transaction((db) =>
+    db.query<{ word: string }>(
+      'select word from public.guess_attempts where match_id=$1',
+      [phrase.match.id],
+    ),
+  );
+  expect(persisted).toEqual([{ word: 'CAPTIONBREAKMOTHERTHENWORLD' }]);
   const friend = await roomOperation(phrase.code, p2);
   expect(friend.players[0]).not.toHaveProperty('attempts');
   expect(friend.match).not.toHaveProperty('answer');
