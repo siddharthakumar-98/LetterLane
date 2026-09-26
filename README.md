@@ -1,22 +1,37 @@
-# Letterlane v1.1.1
+# LetterLane v2.2
 
-An original two-player word game: a friendly duel or a shared co-op win. Built with Next.js App Router, strict TypeScript, React, Tailwind CSS, Supabase Auth/PostgreSQL/Realtime, Zod, and a small set of accessible native controls. Fonts ship locally; no font CDN, image service, AI service, or paid add-on is required.
+A private multiplayer guessing game with two puzzle types: **Words** (five-letter words) and **Phrases** (sayings of up to seven words). Play a friendly duel or work toward a shared co-op win, with a friend or a bot. Both puzzle types share rooms, six-guess rounds, personal clocks, private guesses, saved progress, and rematches.
 
-## Built on v1.0.1
+Built with Next.js App Router, strict TypeScript, React, Tailwind CSS, Supabase Auth/PostgreSQL/Realtime, Zod, and accessible native controls. Fonts ship locally; no font CDN, image service, AI service, or paid add-on is required.
 
-Fixes rooms that create successfully on Supabase but then show “Let's reconnect.”
-Postgres.js was encoding already-stringified JSON a second time. Room snapshots
-and guess marks now bind as text before conversion to JSONB, so both database
-backends store objects and arrays correctly. Existing affected rooms are readable
-and are repaired on their next accepted action or heartbeat. The v1.0.1 fix is retained in this release. Existing deployments only need the
-additive bot migration described below; no password or environment-variable
-changes are required.
+## Version history
 
-The regression test uses the real Postgres.js driver over a local PGlite socket,
-including its parameter-description and serialization behavior. It covers room
-creation, refresh, joining, readiness, guesses, privacy, completion, rematches,
-and recovery of rooms written by v1.0. The test socket is local only; production
-connections still require TLS.
+These milestones group the delivered features in the repository history. [CHANGELOG.md](CHANGELOG.md) retains the detailed v1.1 release notes.
+
+### v2.2 — Current: phrase validation and live feedback
+
+- Replace the permissive phrase vocabulary with a pinned, conservative SCOWL English word list, preserving contractions, hyphen handling, and every answer word. Words keeps its separate dictionary.
+- Validate completed phrase words while typing and show positional errors above the keyboard. Debounced, cached checks keep the dictionary server-side and never consult the hidden answer; submission validation remains authoritative.
+- Keep feedback visible with the sticky keyboard on mobile. Regression coverage verifies stale-response handling, punctuation, desktop/mobile input, and rejection without an attempt, time bonus, or persisted guess.
+
+### v2.1 — Player-controlled bot matches
+
+- Replace automatic bot assignment after 45 seconds with **Play with bot**, available immediately when a solo player readies up. Players can keep waiting for a friend; seat allocation remains transactional and readiness survives refreshes.
+- Simplify phrase entry to direct tile typing with physical/on-screen keyboards, removing the extra input box. Correct the phrase countdown's compressed appearance across screen sizes.
+
+### v2.0 — LetterLane Phrases
+
+- Introduce complete-phrase puzzles at `/phrases`, with 51 local proverbs of at most seven words, automatic spaces/punctuation, word-group wrapping, and per-word dictionary validation.
+- Add four-color feedback: **green** for an exact match, **orange** for a letter elsewhere in the same word, **blue** for a remaining occurrence in another word, and **grey** for no remaining occurrence. Each answer occurrence is allocated at most once.
+- Give Phrases a **3:00** personal clock and **+5 seconds** per green/orange/blue tile, while preserving Words' **1:30** clock and **+20 seconds** per green/yellow tile.
+- Extend the shared duel/co-op engine, bot difficulties, navigation, results, and rematches to both puzzle types. Mode-aware PostgreSQL/PGlite persistence preserves existing Words rooms and constraints; accepted progress survives refreshes.
+
+### v1.x — Multiplayer Words
+
+- Establish private two-player rooms, duel and co-op, six guesses, synchronized starts, hidden opponent guesses, reconnects, and rematches, backed by authoritative transactions, anonymous guests, and Supabase Realtime or local PGlite.
+- Add clue-driven bot opponents, then **Easy / Pipsqueak**, **Medium / Pipper**, and **Hard / Pip**, with persisted difficulty and independent play. Add personal countdown clocks and earned time bonuses.
+- Fix hosted JSON persistence and recover affected v1.0 rooms in **v1.0.1**; introduce bots in **v1.1** and expand accepted Words guesses to 14,856 in **v1.1.1**.
+- Evolve the interface into the responsive dark theme with light-green branding, accessible controls, and more visible personal timers.
 
 ## Start on this Mac
 
@@ -45,9 +60,9 @@ Choose the companion when creating a room:
 
 New rooms created in the UI default to **Medium**. Difficulty persists through refreshes and rematches and applies in both duel and co-op. Existing rooms and API callers that omit `botDifficulty` keep **Hard** for compatibility. The setting is stored in the existing private room JSON; this feature needs no additional database migration.
 
-All levels use only their own evaluated guesses and the existing answer vocabulary. They never receive the hidden answer or the human's guesses, respect clues including duplicate-letter counts, and avoid repeated words. Guess intervals are thinking time, not guaranteed solve times; random choices and polling affect the finish time. Every bot follows the same scoring, personal clock, six-attempt limit, finish window, and tie-breaks. Bots automatically agree to rematches; the human still decides whether to start another round.
+All levels use only their own evaluated guesses: Words bots choose from the word answer pool, while Phrases bots choose allowed words matching the public word lengths. They never receive the hidden answer or the human's guesses, respect clues including duplicate-letter counts, and avoid repeating complete guesses. Guess intervals are thinking time, not guaranteed solve times; random choices and polling affect the finish time. Every bot follows the same scoring, personal clock, six-attempt limit, finish window, and tie-breaks. Bots automatically agree to rematches; the human still decides whether to start another round.
 
-**Upgrading an existing Supabase database:** apply `supabase/migrations/202609110001_bots.sql` before deploying v1.1, or run `pnpm db:migrate` if you used the migration runner originally. This adds `players.is_bot` with a default of false; existing identities, rooms and match history are preserved. Local mode applies this additive migration on startup. No new credentials, services or configuration variables are required.
+**Upgrading an existing Supabase database:** if the bot migration is not yet applied, include `supabase/migrations/202609110001_bots.sql` along with all other pending migrations before deployment. Use `pnpm db:migrate` if you used the migration runner originally. This adds `players.is_bot` with a default of false; existing identities, rooms and match history are preserved. Local mode applies this additive migration on startup. No new credentials, services or configuration variables are required.
 
 Bot selection and moves run during authenticated room requests under the same database row lock as human actions. Only an explicit **Play with bot** request assigns a bot; the existing one-second poll advances its turns after assignment. Pending moves are stored privately in PostgreSQL. Multiple tabs cannot create extra bots or duplicate turns. If every browser is closed or offline, the bot pauses until another request arrives and then takes at most one due move, with the actual server timestamp; it does not replay a burst of missed guesses.
 
@@ -73,7 +88,7 @@ pnpm test:e2e         # Production server, two browser profiles, desktop + mobil
 pnpm format:check
 ```
 
-The E2E server runs on port 3100 and uses separate data in `.letterlane/e2e/`. Only its explicitly enabled local test mode chooses CRANE, then BLOOM. `E2E_TEST_MODE` is not in `.env.example`, must never be set on a deployment, and cannot enable local mode on Vercel. Ordinary local and Supabase games choose answers using Node's cryptographic random generator. Start E2E tests after a fresh `pnpm build`; stop anything already listening on port 3100.
+The E2E server runs on port 3100 and uses separate data in `.letterlane/e2e/`. Its explicitly enabled local test mode chooses CRANE, then BLOOM for Words, and “Actions speak louder than words,” then “A leopard can't change its spots” for Phrases. `E2E_TEST_MODE` is not in `.env.example`, must never be set on a deployment, and cannot enable local mode on Vercel. Ordinary local and Supabase games choose answers using Node's cryptographic random generator. Start E2E tests after a fresh `pnpm build`; stop anything already listening on port 3100.
 
 Dependency versions are pinned by `pnpm-lock.yaml`. TypeScript 6.0 and ESLint 9 are the latest supported compatible lines for the installed Next.js lint plugin peer ranges; newer incompatible majors are deliberately excluded. `pnpm peers check` verifies compatibility. There is no shadcn dependency because native dialogs, radio groups, buttons and fields meet this interface's needs.
 
@@ -102,18 +117,18 @@ Relevant official references: [Next.js installation](https://nextjs.org/docs/app
 3. Apply the migrations to the target Supabase project first. Place the Vercel functions near your Supabase region and use the Supabase transaction pooler. The database client disables prepared statements and opens at most three connections per warm function instance.
 4. Deploy, update the Supabase application URL, and smoke-test with two real browser profiles using the deployed invitation URL. Client-visible Supabase keys are public by design; database credentials remain server-only.
 
-No cloud account or credentials were supplied for this implementation, so hosted Supabase Auth/Realtime and a Vercel deployment must be verified after you connect your project. Automated browser tests exercise the real Next API and embedded PostgreSQL backend, not a mocked game server. RLS migrations are separately executed and tested against embedded PostgreSQL with Supabase auth/realtime schema stubs; that does not substitute for testing a hosted Realtime WebSocket connection.
+Verify hosted Supabase Auth/Realtime and the Vercel deployment against your configured project. Automated browser tests exercise the real Next API and embedded PostgreSQL backend, not a mocked game server. RLS migrations are separately executed and tested against embedded PostgreSQL with Supabase auth/realtime schema stubs; that does not substitute for testing a hosted Realtime WebSocket connection.
 
 ## Rules and product decisions
 
-- **Personal clocks:** Each player (including bots) starts with **1:30** after the countdown. Each green or yellow tile in an accepted guess adds **20 seconds** to that player's clock. Two matches earn 40 seconds; three earn one minute. Duplicate letters earn time only when scoring marks those occurrences green/yellow. There is no extra time for gray tiles, invalid guesses, repeated words, or retried requests.
+- **Personal clocks:** After the countdown, each player (including bots) starts with **1:30 in Words** or **3:00 in Phrases**. An accepted Words guess adds **20 seconds** per green/yellow tile; an accepted Phrases guess adds **five seconds** per green/orange/blue tile. Duplicate occurrences earn time only when matched by scoring. Grey tiles, invalid guesses, repeated guesses, and retried requests earn no extra time.
 - Clocks keep running during disconnects. At zero a player cannot submit more guesses; the other may continue until a solve, timeout, or six attempts. If neither solves, the existing points comparison applies; co-op ends in a team loss when both are finished. Rematches reset clocks and bonuses.
 - Deadlines are derived from the shared database start time and saved evaluated guesses, under the existing room lock. Both countdowns are visible beside the opponent lane on wide screens and in a sticky strip above the board on smaller screens. Public clock increases reveal the amount of earned time, but words and individual tile evaluations remain hidden until results. Polls, heartbeats, and actions settle expired rounds; disconnected rooms settle on their next request. No background Vercel timer or new Supabase migration/environment setting is needed. Previously started rooms use the same rule against their saved start time and guesses when first accessed after deployment.
 
-- Both players get the same hidden five-letter word and six guesses each, with a shared three-second countdown.
+- Both players get the same hidden puzzle—a five-letter word in Words or a phrase of up to seven words in Phrases—and six guesses each, with a shared three-second countdown.
 - **Duel:** first solve opens a **750 ms** synchronization window. Solvers within it are compared by accepted guess count, then server-recorded elapsed milliseconds. Exactly equal results draw. Once a player is solved, out of time, or out of attempts, they cannot submit again. If both are done, the server resolves immediately.
 - When neither solves, compare each player's best single guess: (1) most correctly identified letter occurrences, including misplaced ones, (2) earliest attempt that reached that maximum, (3) most exact positions, (4) most misplaced letters. If all values match, draw. Duplicate letter occurrences are counted only up to the occurrences in the answer. This explicitly defines “fewest guesses required to reveal the most correct letters.”
-- **Co-op:** either solve ends the match with a team win. If both exhaust six attempts, the team loses. Letters remain private during play in both modes.
+- **Co-op:** either solve ends the match with a team win. If both players run out of attempts or time without solving, the team loses. Letters remain private during play in both modes.
 - A repeated accepted word is rejected without consuming a turn. Replaying the same request UUID with the same payload returns the saved state; reusing that UUID with different content is rejected. A match UUID prevents late requests from leaking into a rematch.
 - In a bot room, the bot automatically supplies its rematch vote; a human vote remains required.
 - Two rematch votes immediately schedule a new three-second countdown. The room and guest identities persist, but the answer always changes.
@@ -145,6 +160,12 @@ Per-player JSON snapshot → own evaluated guesses + masked opponent counts
 
 All transitions for one room serialize on its database row. Different rooms remain independent. The normalized projections and revision event commit in the same transaction as private state. The database provides timestamps after acquiring the lock; client latency/time cannot manufacture a faster finish. Reads also advance deadlines, so there is no dependency on a long-lived timer in a Vercel function. If no client is connected, a pending result is committed on the next request with the same logical winner.
 
+### Persistence and recovery
+
+The **v1.0.1** hosted persistence fix remains in place: Postgres.js binds serialized room snapshots and guess marks as text before converting to JSONB, preventing double encoding. Affected v1.0 rooms remain readable and are repaired on their next accepted action or heartbeat.
+
+Regression tests exercise the real Postgres.js driver over a local PGlite socket, including serialization, room recovery, and Words/Phrases round trips. The test socket is local only; production connections still require TLS. Apply all pending migrations before deployment; local mode applies its migrations on startup.
+
 ## Security model
 
 - The server verifies Supabase access tokens with `auth.getUser`, or looks up a cryptographically random local HttpOnly cookie by SHA-256 hash. The request body never chooses its player ID.
@@ -153,10 +174,10 @@ All transitions for one room serialize on its database row. Different rooms rema
 - Bots are server-created player identities with no Auth account or guest cookie. The API rejects attempts to act as a bot; bot flags and scheduling cannot be supplied in client action bodies. The scheduler timestamp stays in private state and is excluded from snapshots.
 - Seat constraints limit each room to two players. Match/attempt keys cap six attempts and prevent duplicate request IDs and duplicate words. Application checks also enforce membership, phase, match ID, allowed vocabulary, and solved-player restrictions.
 - Only an answer-free revision counter is published to Realtime. Opponent guesses and the answer do not appear in active JSON responses, page props, browser bundles, or log messages. Database errors are never returned or logged verbatim.
-- Mutations require same-origin requests, limit the JSON body to 2 KiB while reading, validate a strict action schema, and enforce per-identity database-backed limits (12 room creations/hour; 180 room requests/minute). Invalid actions also count toward the limit. Supabase Auth handles initial guest-signup abuse limits; consider its CAPTCHA option if abuse becomes a problem.
+- Mutations require same-origin requests, limit the JSON body to 2 KiB while reading, validate a strict action schema, and enforce per-identity database-backed limits (12 room creations/hour; 180 room requests/minute; a separate 60 phrase-word validation requests/minute). Room-rule rejections also count toward the room request limit. Supabase Auth handles initial guest-signup abuse limits; consider its CAPTCHA option if abuse becomes a problem.
 - API responses disable caching and vary on cookie/authorization. Browser security headers prevent framing and MIME sniffing. CSP permits Next's inline scripts/styles; `unsafe-eval` is restricted to development. For a tighter public deployment, use per-request CSP nonces and remove inline allowances as a separate hardening step.
 
-## Vocabulary
+## Words vocabulary
 
 `src/lib/server/dictionary/answers.json` contains **825** hand-curated possible answers. `allowed-guesses.json` contains **14,856** allowed guesses: the **14,855** entries extracted from the official NYT Wordle client on September 13, 2026, combined with every existing LetterLane entry. This includes IRATE, PLOWS, LOOPS, and the original LetterLane-only entry FOOEY. The answer pool and bot strategy are unchanged; expanding accepted guesses does not add obscure words to the answer pool.
 
@@ -172,7 +193,7 @@ The one-second fallback polling and five-second heartbeats prioritize predictabl
 
 Schedule database maintenance appropriate to your retention policy (SQL examples in `supabase/maintenance.sql`). Expired rooms are inaccessible immediately but retained until cleanup; deleting them cascades to match/attempt/private state rows. Preserve data you need before running cleanup. Guest rows are kept while referenced by room history. Database backups and service uptime depend on your Supabase plan. No external scheduled service is required for game correctness.
 
-## Letterlane Phrases
+## LetterLane Phrases
 
 Choose **Phrases** in the shared Words/Phrases navigation, or open **/phrases**. This is the same private two-player game with whole sayings instead of five-letter words: duel/co-op, six guesses, optional bots and difficulty choices, private opponent guesses, saved rooms, and rematches all use the shared engine. Words remains at `/`, and both types retain their existing `/room/<code>` invitation URLs.
 
@@ -187,10 +208,14 @@ Letters fill the displayed word lengths automatically. Spaces, apostrophes, comm
 
 Matching consumes occurrences once: all greens first, then all same-word oranges, then cross-word blues, left to right. Extra duplicate letters turn grey. The keyboard displays the strongest hint seen for each letter; exact word-specific hints remain on the board.
 
-Every guessed word is validated before any scoring. Phrases uses a separate, conservative SCOWL size-35 vocabulary with abbreviation, name, nonstandard and uncommon-entry filters, plus explicit contractions and all answer words. The Words-mode dictionary is unchanged. The pinned source, license, policy and rebuild instructions are documented in [phrase source notes](src/lib/server/phrases/SOURCES.md). Rejections identify one-based positions: `Word 2 is not in word list`, `Words 1 and 3 are not in word list`, or `Words 1, 2, and 5 are not in word list`. Completed words are also checked while typing, with positional errors in the status area above the keyboard; incomplete words stay neutral. Checks are debounced, cached, authenticated server requests using the same validator, without sending or reading a hidden answer. No dictionary is bundled into the browser. Enter always validates again on the server, even if live feedback is unavailable. Invalid guesses consume no attempt or bonus. Phrases start at **3:00** and each green/orange/blue tile adds **five seconds**. Words retains its original 1:30 clock and 20-second green/yellow bonuses.
+Every guessed word is validated before any scoring. Phrases uses a separate, conservative SCOWL size-35 vocabulary with abbreviation, name, nonstandard and uncommon-entry filters, plus explicit contractions and all answer words. The Words-mode dictionary is unchanged. The pinned source, license, policy and rebuild instructions are documented in [phrase source notes](src/lib/server/phrases/SOURCES.md).
+
+Rejections identify one-based positions: `Word 2 is not in word list`, `Words 1 and 3 are not in word list`, or `Words 1, 2, and 5 are not in word list`. Completed words are also checked while typing, with positional errors in the status area above the keyboard; incomplete words stay neutral. Checks are debounced, cached, authenticated server requests using the same validator, without sending or reading a hidden answer. No dictionary is bundled into the browser. Enter always validates again on the server, even if live feedback is unavailable. Invalid guesses consume no attempt or bonus.
+
+Phrases start at **3:00** and each green/orange/blue tile adds **five seconds**. Words retains its original 1:30 clock and 20-second green/yellow bonuses.
 
 Puzzle selection remains **random per room and rematch**, excluding the immediately previous answer; there are no daily puzzles. The stored room's `game` discriminator isolates Words and Phrases, and old rooms default to Words. Each room and round has its own IDs, answer, attempts, completion and rematch state. Accepted phrase progress survives reloads through the existing PostgreSQL/PGlite persistence. The optional saved display name uses `letterlane-phrases-name`, separate from `letterlane-name`. Unsubmitted draft letters are not persisted, matching Words. The app has per-round result statistics, which are reused with phrase boards; it has no global streak or lifetime-statistics system to migrate.
 
-**Database upgrade:** apply `supabase/migrations/202609220001_phrases.sql` before deploying this build (`pnpm db:migrate` with the existing database configuration). It adds the guess type and permits compact phrase letters plus one mark per letter while preserving the five-letter Words constraint. Existing rows default to Words. Local mode applies it automatically. No hosted database has been modified by this implementation.
+**Database upgrade:** if not yet applied, include `supabase/migrations/202609220001_phrases.sql` with the pending migrations before deployment (`pnpm db:migrate` with the existing database configuration). This migration was introduced with v2.0. It adds the guess type and permits compact phrase letters plus one mark per letter while preserving the five-letter Words constraint. Existing rows default to Words. Local mode applies it automatically.
 
 Run `./dev.sh`, open `http://127.0.0.1:3000/phrases`, create a room and invite a second browser profile (or ready up and choose **Play with bot**). Run `pnpm test` for rules, validation, duplicate scoring, datasets, mode isolation and database tests; run `pnpm build && pnpm test:e2e` for the Words and Phrases browser flows. Browser tests use the existing local-only deterministic test selection, never production puzzles. Phrase bots use public word lengths and their own feedback to choose valid words; their guesses can be grammatical nonsense because they do not receive or search the answer collection.
