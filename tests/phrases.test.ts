@@ -12,6 +12,8 @@ import {
   scorePhrase,
   validatePhraseGuess,
   invalidWordMessage,
+  isAllowedPhraseWord,
+  completedPhraseWords,
 } from '../src/lib/game/phrases';
 import { PHRASES, PHRASE_WORDS, pickPhrase } from '../src/lib/server/phrases';
 import { choosePhraseBotGuess } from '../src/lib/server/phrase-bot';
@@ -187,6 +189,96 @@ describe('four-color evaluation', () => {
   });
 });
 describe('per-word validation', () => {
+  it.each([
+    'LUNG',
+    'ROAD',
+    'ROOM',
+    'PLAN',
+    'ELSE',
+    'CAPTION',
+    'MOTHER',
+    'COLOUR',
+    'COLOR',
+    'ORGANISE',
+    'ORGANIZE',
+    "CAN'T",
+    "DON'T",
+    "IT'S",
+    'WELL-KNOWN',
+    'ROAD.',
+  ])('accepts ordinary vocabulary and supported punctuation: %s', (word) => {
+    expect(isAllowedPhraseWord(word, PHRASE_WORDS)).toBe(true);
+  });
+  it.each([
+    'GOS',
+    'NIFFS',
+    'BAUK',
+    'JS',
+    'QOPH',
+    'QAT',
+    'ZA',
+    'XU',
+    'AAL',
+    'XIX',
+    'CPU',
+    'HTML',
+    'ETC',
+    'ZZZZ',
+    'RO4D',
+    'R O A D',
+    '-ROAD',
+    'ROAD--ROOM',
+    '',
+  ])(
+    'rejects game artifacts, abbreviations and malformed tokens: %s',
+    (word) => {
+      expect(isAllowedPhraseWord(word, PHRASE_WORDS)).toBe(false);
+    },
+  );
+  it('keeps every answer word eligible for independent live checks', () => {
+    for (const phrase of PHRASES) {
+      for (const { pattern } of phraseWords(phrase.text)) {
+        expect(isAllowedPhraseWord(pattern, PHRASE_WORDS), pattern).toBe(true);
+      }
+    }
+  });
+  it('uses the stricter policy for full submissions, not just the live endpoint', () => {
+    expect(() =>
+      validatePhraseGuess(
+        'GOS NIFFS BAUK JS LUNG',
+        '___ _____ ____ __ ____',
+        PHRASE_WORDS,
+      ),
+    ).toThrow('Words 1, 2, 3, and 4 are not in word list');
+    expect(() =>
+      validatePhraseGuess(
+        'ACTIONS NIFFS LOUDER THAN WORDS',
+        '_______ _____ ______ ____ _____',
+        PHRASE_WORDS,
+      ),
+    ).toThrow('Word 2 is not in word list');
+    expect(
+      validatePhraseGuess('CANTDONTITS', "___'_ ___'_ __'_", PHRASE_WORDS),
+    ).toBe('CANTDONTITS');
+    expect(
+      validatePhraseGuess('WELLKNOWNROAD', '____-_____ ____.', PHRASE_WORDS),
+    ).toBe('WELLKNOWNROAD');
+  });
+  it('extracts only complete words, with their template punctuation and positions', () => {
+    const template = "___ ___'_ ____-_____.";
+    expect(completedPhraseWords(template, 'CA')).toEqual([]);
+    expect(completedPhraseWords(template, 'CATDO')).toEqual([
+      { position: 1, word: 'CAT' },
+    ]);
+    expect(completedPhraseWords(template, 'CATDONTWELLKNOWN')).toEqual([
+      { position: 1, word: 'CAT' },
+      { position: 2, word: "DON'T" },
+      { position: 3, word: 'WELL-KNOWN.' },
+    ]);
+    expect(completedPhraseWords(template, 'CATDON')).toEqual([
+      { position: 1, word: 'CAT' },
+    ]);
+  });
   it.each([
     [[2], 'Word 2 is not in word list'],
     [[1, 3], 'Words 1 and 3 are not in word list'],

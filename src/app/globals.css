@@ -2488,11 +2488,13 @@ input::placeholder {
     calc((100cqw - var(--phrase-columns) * 3px) / var(--phrase-columns))
   );
 }
-.phrase-mode .keyboard {
+.phrase-mode .guess-controls {
   position: sticky;
   bottom: 0;
   z-index: 4;
   background: var(--paper);
+}
+.phrase-mode .keyboard {
   padding: 10px 0;
 }
 @media (max-width: 1100px) {

@@ -84,6 +84,56 @@ test('Words and Phrases switch cleanly, retain separate progress, validate, solv
     await expect(page.locator('.phrase-board .tile').first()).toHaveText('A');
     await page.getByRole('button', { name: 'Delete letter' }).click();
     await expect(page.locator('.phrase-board .tile').first()).toBeEmpty();
+    const status = page.locator('.guess-feedback');
+    const neutral =
+      '5 words · 27 letters. Spaces and punctuation are automatic.';
+    await expect(status).toHaveAttribute('aria-live', 'polite');
+    const neutralHeight = (await status.boundingBox())!.height;
+    await page.getByRole('heading', { name: 'Your lane', exact: true }).click();
+    await page.keyboard.type('ZZ');
+    // Allow the debounce to elapse: incomplete words must stay neutral.
+    await page.waitForTimeout(350);
+    await expect(status).toHaveText(neutral);
+    await page.keyboard.type('ZZZZZ');
+    await expect(status).toHaveText('Word 1 is not in word list');
+    expect((await snapshot()).players[0].count).toBe(0);
+    for (let i = 0; i < 7; i++) await page.keyboard.press('Backspace');
+    await page.keyboard.type('CAPTION');
+    await expect(status).toHaveText(neutral);
+    for (let i = 0; i < 7; i++) await page.keyboard.press('Backspace');
+    await page.keyboard.type('ZZZZZZZNIFFS');
+    await expect(status).toHaveText('Words 1 and 2 are not in word list');
+    for (let i = 0; i < 5; i++)
+      await page.getByRole('button', { name: 'Delete letter' }).click();
+    for (const letter of 'SPEAK')
+      await page.getByRole('button', { name: letter, exact: true }).click();
+    await expect(status).toHaveText('Word 1 is not in word list');
+    await page.getByRole('heading', { name: 'Your lane', exact: true }).click();
+    await page.keyboard.type('ZZ');
+    await page.waitForTimeout(350);
+    await expect(status).toHaveText('Word 1 is not in word list');
+    await page.keyboard.type('ZZZZ');
+    await expect(status).toHaveText('Words 1 and 3 are not in word list');
+    await page.keyboard.type('ZZZZ');
+    await expect(status).toHaveText('Words 1, 3, and 4 are not in word list');
+    expect(
+      Math.abs((await status.boundingBox())!.height - neutralHeight),
+    ).toBeLessThanOrEqual(1);
+    expect(
+      await status.evaluate((element) => {
+        const keyboard = document
+          .querySelector('.keyboard')!
+          .getBoundingClientRect();
+        return (
+          element.getBoundingClientRect().bottom <= keyboard.top &&
+          document.documentElement.scrollWidth <= innerWidth
+        );
+      }),
+    ).toBe(true);
+    await page.screenshot({
+      path: testInfo.outputPath('phrase-live-validation.png'),
+      fullPage: true,
+    });
     await enterPhrase(page, 'ACTIONS');
     await expect(
       page.getByText('Fill all 27 letters before submitting.'),
@@ -96,9 +146,20 @@ test('Words and Phrases switch cleanly, retain separate progress, validate, solv
         'Words 1, 2, and 3 are not in word list',
       ],
     ]) {
+      const before = await snapshot();
+      const rejected = page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/rooms/') &&
+          response.request().method() === 'POST' &&
+          response.request().postDataJSON()?.type === 'guess',
+      );
       await enterPhrase(page, guess);
+      expect((await rejected).status()).toBe(422);
       await expect(page.getByText(message, { exact: true })).toBeVisible();
-      expect((await snapshot()).players[0].count).toBe(0);
+      const after = await snapshot();
+      expect(after.players[0].count).toBe(0);
+      expect(after.players[0].attempts).toEqual(before.players[0].attempts);
+      expect(after.players[0].timerEndsAt).toBe(before.players[0].timerEndsAt);
     }
     await enterPhrase(page, 'CAPTION BREAK MOTHER THEN WORLD');
     await expect(

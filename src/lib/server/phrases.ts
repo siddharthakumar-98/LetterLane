@@ -3,7 +3,6 @@ import { randomInt } from 'node:crypto';
 import proverbs from './phrases/proverbs.json';
 import dictionary from './phrases/allowed-words.json';
 import { phraseEntry, phraseWords, playableLetters } from '../game/phrases';
-import { ALLOWED_WORDS } from './words';
 
 export const PHRASE_COLLECTIONS = [proverbs];
 const seen = new Set<string>();
@@ -16,8 +15,8 @@ export const PHRASES = PHRASE_COLLECTIONS.flatMap((collection) =>
     return [entry];
   }),
 );
-// Expand the existing dictionary for variable-length words; Words keeps its
-// original five-letter set. Contractions and dataset vocabulary are explicit.
+// Phrases uses a conservative vocabulary, separate from the Words game lexicon.
+// Contractions and every collection's answer vocabulary remain guessable.
 const contractions = [
   "AREN'T",
   "CAN'T",
@@ -46,7 +45,6 @@ const contractions = [
 ];
 export const PHRASE_WORDS: ReadonlySet<string> = new Set([
   ...dictionary,
-  ...ALLOWED_WORDS,
   ...contractions.map(playableLetters),
   ...PHRASES.flatMap((phrase) =>
     phraseWords(phrase.text).map((word) => playableLetters(word.pattern)),

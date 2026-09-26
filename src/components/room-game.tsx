@@ -23,6 +23,7 @@ import { useRoom } from '@/lib/client/use-room';
 import type { PlayerView, RoomView } from '@/lib/game/types';
 import { nameSchema } from '@/lib/game/validation';
 import { phraseMetadata } from '@/lib/game/phrases';
+import { usePhraseValidation } from '@/lib/client/use-phrase-validation';
 import { PhraseInstructions } from './phrase-instructions';
 import { canPlayWithBot } from '@/lib/game/matchmaking';
 import { BotNotice, BotTag } from './bot-notice';
@@ -264,6 +265,11 @@ export function RoomGame({ code }: { code: string }) {
     !timeUp &&
     (me?.count ?? 6) < 6 &&
     !busy;
+  const phraseValidation = usePhraseValidation(
+    template,
+    input,
+    phrases && connected && phase === 'active' && !clockStopped && !timeUp,
+  );
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -531,38 +537,42 @@ export function RoomGame({ code }: { code: string }) {
                     </div>
                   )}
                 </div>
-                <div className="guess-feedback" aria-live="polite">
-                  {error ? (
-                    <span className="error-message">{error}</span>
-                  ) : me?.solved ? (
-                    <span className="success-message">
-                      You found it! Checking the finish…
-                    </span>
-                  ) : me?.count === 6 ? (
-                    <span>
-                      Your six are in. Waiting for{' '}
-                      {opponent?.isBot ? opponent.name : 'your friend'}…
-                    </span>
-                  ) : timeUp ? (
-                    <span>
-                      Your time is up. Waiting for{' '}
-                      {opponent?.isBot ? opponent.name : 'your friend'}…
-                    </span>
-                  ) : phase === 'countdown' ? (
-                    'Both boards open at the same time.'
-                  ) : (
-                    <span>
-                      {phrases
-                        ? `${phraseMetadata(template!).wordCount} words · ${letterCount} letters. Spaces and punctuation are automatic.`
-                        : 'Trust your hunch. Make it five letters.'}
-                    </span>
-                  )}
+                <div className="guess-controls">
+                  <div className="guess-feedback" aria-live="polite">
+                    {error ? (
+                      <span className="error-message">{error}</span>
+                    ) : me?.solved ? (
+                      <span className="success-message">
+                        You found it! Checking the finish…
+                      </span>
+                    ) : me?.count === 6 ? (
+                      <span>
+                        Your six are in. Waiting for{' '}
+                        {opponent?.isBot ? opponent.name : 'your friend'}…
+                      </span>
+                    ) : timeUp ? (
+                      <span>
+                        Your time is up. Waiting for{' '}
+                        {opponent?.isBot ? opponent.name : 'your friend'}…
+                      </span>
+                    ) : phase === 'countdown' ? (
+                      'Both boards open at the same time.'
+                    ) : phraseValidation ? (
+                      <span className="error-message">{phraseValidation}</span>
+                    ) : (
+                      <span>
+                        {phrases
+                          ? `${phraseMetadata(template!).wordCount} words · ${letterCount} letters. Spaces and punctuation are automatic.`
+                          : 'Trust your hunch. Make it five letters.'}
+                      </span>
+                    )}
+                  </div>
+                  <Keyboard
+                    attempts={me?.attempts ?? []}
+                    onKey={(value) => void key(value)}
+                    disabled={!canGuess}
+                  />
                 </div>
-                <Keyboard
-                  attempts={me?.attempts ?? []}
-                  onKey={(value) => void key(value)}
-                  disabled={!canGuess}
-                />
                 <span className="physical-hint">
                   Your keyboard works here, too. Enter to submit.
                 </span>

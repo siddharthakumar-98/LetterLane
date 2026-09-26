@@ -74,6 +74,35 @@ export function invalidWordMessage(indices: number[]): string {
       : `${indices.slice(0, -1).join(', ')}, and ${indices.at(-1)}`;
   return `Words ${list} are not in word list`;
 }
+/** Only completed template words are eligible for live dictionary checks. */
+export function completedPhraseWords(template: string, letters: string) {
+  return phraseWords(template).flatMap((word, index) =>
+    word.length > 0 && letters.length >= word.offset + word.length
+      ? [
+          {
+            position: index + 1,
+            word: formatPhraseGuess(
+              word.pattern,
+              letters.slice(word.offset, word.offset + word.length),
+            ),
+          },
+        ]
+      : [],
+  );
+}
+/** Independent of any answer. Shared by live checks and final submission. */
+export function isAllowedPhraseWord(
+  value: string,
+  allowed: ReadonlySet<string>,
+) {
+  const word = normalizePhrase(value).replace(/[.,!?]+$/, '');
+  if (!/^[A-Z]+(?:['-][A-Z]+)*$/.test(word)) return false;
+  return (
+    allowed.has(playableLetters(word)) ||
+    (word.includes('-') &&
+      word.split('-').every((part) => allowed.has(playableLetters(part))))
+  );
+}
 export function validatePhraseGuess(
   value: string,
   template: string,
@@ -83,28 +112,16 @@ export function validatePhraseGuess(
   if (!/^[A-Z '.,!?-]+$/.test(normalized))
     throw new GameError('Enter letters to fill every word.', 422);
   const letters = playableLetters(normalized);
-  const words = phraseWords(template);
   const { letterCount } = phraseMetadata(template);
   if (letters.length !== letterCount)
     throw new GameError(
       `Fill all ${letterCount} letters before submitting.`,
       422,
     );
-  const invalid = words.flatMap((word, index) => {
-    const guess = letters.slice(word.offset, word.offset + word.length);
-    // A hyphenated word can also be made from independently valid dictionary words.
-    const displayed = formatPhraseGuess(word.pattern, guess).replace(
-      /[.,!?]/g,
-      '',
-    );
-    const valid =
-      allowed.has(guess) ||
-      (displayed.includes('-') &&
-        displayed
-          .split('-')
-          .every((part) => allowed.has(playableLetters(part))));
-    return valid ? [] : [index + 1];
-  });
+  const invalid = completedPhraseWords(template, letters).flatMap(
+    ({ word, position }) =>
+      isAllowedPhraseWord(word, allowed) ? [] : [position],
+  );
   if (invalid.length) throw new GameError(invalidWordMessage(invalid), 422);
   return letters;
 }
