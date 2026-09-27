@@ -91,6 +91,12 @@ describe('room and state invariants', () => {
     expect(view.players[1]).not.toHaveProperty('attempts');
     expect(JSON.stringify(view)).not.toContain('APPLE');
     expect(view.players[1].count).toBe(1);
+    expect(view.players[1].guessMarks).toEqual([
+      ['present', 'absent', 'absent', 'absent', 'correct'],
+    ]);
+    expect(JSON.stringify(view)).not.toContain(
+      r.players[1].attempts[0].requestId,
+    );
     expect(() => projectRoom(r, p3, 1200)).toThrow('Join');
     r.match.phase = 'complete';
     expect(projectRoom(r, p1, 1300).match.answer).toBe('CRANE');

@@ -584,10 +584,14 @@ export function RoomGame({ code }: { code: string }) {
                 </div>
                 <p className="opponent-description">
                   {opponent?.isBot
-                    ? `${opponent.name} uses its own clues. Bot guesses stay hidden until the round ends.`
-                    : `${opponent?.name}’s progress. The words are their little secret.`}
+                    ? `${opponent.name} uses its own clues. See its guess colors; letters stay hidden until the round ends.`
+                    : `${opponent?.name}’s guess colors. Letters stay hidden until the round ends.`}
                 </p>
-                <MaskedBoard count={opponent?.count ?? 0} />
+                <MaskedBoard
+                  count={opponent?.count ?? 0}
+                  guessMarks={opponent?.guessMarks}
+                  template={template}
+                />
                 {phrases && (
                   <details className="phrase-help">
                     <summary>Phrase color hints</summary>

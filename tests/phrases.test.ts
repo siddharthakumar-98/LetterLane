@@ -28,7 +28,7 @@ import { roundDeadline, timeBonus } from '../src/lib/game/round-clock';
 import { createSchema } from '../src/lib/game/validation';
 import { keyboardMarks } from '../src/lib/game/scoring';
 import type { Attempt, Room } from '../src/lib/game/types';
-import { fixture, p1 } from './fixtures';
+import { fixture, p1, p2 } from './fixtures';
 
 export function phraseRoom(answer = 'ACTIONS SPEAK LOUDER THAN WORDS'): Room {
   const room = fixture();
@@ -325,6 +325,29 @@ describe('per-word validation', () => {
   });
 });
 describe('shared room engine', () => {
+  it.each(['duel', 'coop'] as const)(
+    'shares phrase colors, never opponent letters or private attempt metadata in %s',
+    (mode) => {
+      const room = phraseRoom();
+      room.mode = mode;
+      guess(room, 'CAPTION BREAK MOTHER THEN WORLD');
+      const view = projectRoom(room, p2, 4001);
+      expect(view.players[0].guessMarks).toEqual([
+        room.players[0].attempts[0].marks,
+      ]);
+      expect(view.players[0].guessMarks[0]).toHaveLength(27);
+      expect(view.players[0].guessMarks[0]).toContain('elsewhere');
+      expect(view.players[0]).not.toHaveProperty('attempts');
+      expect(view.match).not.toHaveProperty('answer');
+      expect(JSON.stringify(view)).not.toContain('CAPTIONBREAKMOTHERTHENWORLD');
+      expect(JSON.stringify(view)).not.toContain(
+        room.players[0].attempts[0].requestId,
+      );
+      expect(projectRoom(room, p1, 4001).players[0].attempts?.[0].word).toBe(
+        'CAPTIONBREAKMOTHERTHENWORLD',
+      );
+    },
+  );
   it('hides answer letters, scores a full phrase, and rematches with a new layout', () => {
     const room = phraseRoom();
     const view = projectRoom(room, p1, 4000);
@@ -398,6 +421,9 @@ describe('shared room engine', () => {
       expect(room.players[1].attempts).toHaveLength(1);
       const view = projectRoom(room, p1, 4000);
       expect(view.players[1]).not.toHaveProperty('attempts');
+      expect(view.players[1].guessMarks).toEqual(
+        room.players[1].attempts.map(({ marks }) => marks),
+      );
       expect(view).not.toHaveProperty('botNextGuessAt');
     },
   );

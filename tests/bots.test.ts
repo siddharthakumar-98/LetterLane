@@ -170,6 +170,9 @@ describe('fair, persisted bot turns', () => {
     const view = projectRoom(room, p1, 57000);
     const opponent = view.players.find((p) => p.isBot)!;
     expect(opponent).toMatchObject({ isBot: true, count: 1 });
+    expect(opponent.guessMarks).toEqual(
+      bot(room).attempts.map(({ marks }) => marks),
+    );
     expect(opponent).not.toHaveProperty('attempts');
     expect(view.match).not.toHaveProperty('answer');
     expect(view).not.toHaveProperty('botNextGuessAt');

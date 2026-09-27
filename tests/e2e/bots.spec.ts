@@ -53,14 +53,26 @@ for (const game of ['words', 'phrases'] as const) {
     const active = await snapshot();
     const bot = active.players.find((p) => p.isBot)!;
     expect(bot).not.toHaveProperty('attempts');
+    expect(bot.guessMarks).toHaveLength(1);
+    expect(bot.guessMarks[0]).toHaveLength(game === 'phrases' ? 27 : 5);
     expect(active.match).not.toHaveProperty('answer');
     expect(active).not.toHaveProperty('botNextGuessAt');
     await page.reload();
     await expect(
-      page.getByRole('img', {
+      page.getByRole('group', {
         name: 'Opponent has used 1 of 6 guesses. Letters are hidden.',
       }),
     ).toBeVisible();
+    const opponentTiles = page
+      .locator('.masked-row')
+      .first()
+      .locator('.masked-tile');
+    await expect(opponentTiles).toHaveClass(
+      bot.guessMarks[0].map((mark) => `masked-tile ${mark}`),
+    );
+    expect(
+      (await opponentTiles.allTextContents()).every((letter) => letter === ''),
+    ).toBe(true);
     expect(
       (
         await new AxeBuilder({ page })
