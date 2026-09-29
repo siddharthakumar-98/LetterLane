@@ -125,29 +125,33 @@ export function HowToPlay({ game = 'words' }: { game?: GameKind }) {
 export function Header({
   children,
   game = 'words',
+  showGameSwitch = true,
 }: {
   children?: React.ReactNode;
   game?: GameKind;
+  showGameSwitch?: boolean;
 }) {
   return (
     <header className="site-header">
       <Logo />
-      <nav className="game-switch" aria-label="Game mode">
-        <Link
-          href="/"
-          aria-label="Letterlane Words"
-          aria-current={game === 'words' ? 'page' : undefined}
-        >
-          Words
-        </Link>
-        <Link
-          href="/phrases"
-          aria-label="Letterlane Phrases"
-          aria-current={game === 'phrases' ? 'page' : undefined}
-        >
-          Phrases
-        </Link>
-      </nav>
+      {showGameSwitch && (
+        <nav className="game-switch" aria-label="Game mode">
+          <Link
+            href="/"
+            aria-label="Letterlane Words"
+            aria-current={game === 'words' ? 'page' : undefined}
+          >
+            Words
+          </Link>
+          <Link
+            href="/phrases"
+            aria-label="Letterlane Phrases"
+            aria-current={game === 'phrases' ? 'page' : undefined}
+          >
+            Phrases
+          </Link>
+        </nav>
+      )}
       <nav aria-label="Main navigation">
         {children}
         <HowToPlay game={game} />

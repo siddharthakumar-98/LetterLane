@@ -368,7 +368,7 @@ export function RoomGame({ code }: { code: string }) {
     : 0;
   return (
     <div className={`page-shell room-shell ${phrases ? 'phrase-mode' : ''}`}>
-      <Header game={room?.game}>
+      <Header game={room?.game} showGameSwitch={false}>
         <button
           className="text-button share-button"
           onClick={() => void copy()}

@@ -12,6 +12,8 @@ for (const game of ['words', 'phrases'] as const) {
     await page.getByRole('button', { name: 'Create a private room' }).click();
     await expect(page).toHaveURL(/\/room\/[A-Z2-9]{6}/);
     const code = page.url().split('/').at(-1)!;
+    const modeSwitch = page.getByRole('navigation', { name: 'Game mode' });
+    await expect(modeSwitch).toHaveCount(0);
     const snapshot = () =>
       page.evaluate(
         async (c) =>
@@ -27,6 +29,7 @@ for (const game of ['words', 'phrases'] as const) {
     await page.getByRole('button', { name: 'I’m ready', exact: true }).click();
     await page.reload();
     const restored = await snapshot();
+    await expect(modeSwitch).toHaveCount(0);
     expect(restored.createdAt).toBe(initial.createdAt);
     expect(restored.players[0].ready).toBe(true);
     expect(restored.players).toHaveLength(1);
@@ -41,6 +44,7 @@ for (const game of ['words', 'phrases'] as const) {
       page.getByRole('button', { name: 'Submit guess' }),
     ).toBeEnabled();
     await expect(page.getByText('BOT', { exact: true })).toBeVisible();
+    await expect(modeSwitch).toHaveCount(0);
     await expect(page.getByText('Bot · ready to play')).toBeVisible();
     await expect
       .poll(
@@ -102,12 +106,14 @@ for (const game of ['words', 'phrases'] as const) {
       page.getByText('Pip is ready for another round whenever you are.'),
     ).toBeVisible();
     const ended = await snapshot();
+    await expect(modeSwitch).toHaveCount(0);
     expect(ended.players.find((p) => p.isBot)?.rematch).toBe(true);
     await page.getByRole('button', { name: 'One more round' }).click();
     await expect(
       page.getByRole('button', { name: 'Submit guess' }),
     ).toBeEnabled();
     const next = await snapshot();
+    await expect(modeSwitch).toHaveCount(0);
     expect(next.match.round).toBe(2);
     expect(next.players.find((p) => p.isBot)?.id).toBe(bot.id);
     expect(next.players.every((p) => p.count === 0)).toBe(true);
