@@ -123,7 +123,7 @@ Verify hosted Supabase Auth/Realtime and the Vercel deployment against your conf
 
 - **Personal clocks:** After the countdown, each player (including bots) starts with **1:30 in Words** or **3:00 in Phrases**. An accepted Words guess adds **20 seconds** per green/yellow tile; an accepted Phrases guess adds **five seconds** per green/orange/blue tile. Duplicate occurrences earn time only when matched by scoring. Grey tiles, invalid guesses, repeated guesses, and retried requests earn no extra time.
 - Clocks keep running during disconnects. At zero a player cannot submit more guesses; the other may continue until a solve, timeout, or six attempts. If neither solves, the existing points comparison applies; co-op ends in a team loss when both are finished. Rematches reset clocks and bonuses.
-- Deadlines are derived from the shared database start time and saved evaluated guesses, under the existing room lock. Both countdowns are visible beside the opponent lane on wide screens and in a sticky strip above the board on smaller screens. Public clock increases reveal the amount of earned time, but words and individual tile evaluations remain hidden until results. Polls, heartbeats, and actions settle expired rounds; disconnected rooms settle on their next request. No background Vercel timer or new Supabase migration/environment setting is needed. Previously started rooms use the same rule against their saved start time and guesses when first accessed after deployment.
+- Deadlines are derived from the shared database start time and saved evaluated guesses, under the existing room lock. Both countdowns are visible beside the opponent lane on wide screens and in a sticky strip above the board on smaller screens. Both players can see opponent guess colors and earned time, but opponent letters remain hidden until results. The other lane shows green/yellow/grey tiles for Words and green/orange/blue/grey tiles grouped by word for Phrases. Polls, heartbeats, and actions settle expired rounds; disconnected rooms settle on their next request. No background Vercel timer or new Supabase migration/environment setting is needed. Previously started rooms use the same rule against their saved start time and guesses when first accessed after deployment.
 
 - Both players get the same hidden puzzle—a five-letter word in Words or a phrase of up to seven words in Phrases—and six guesses each, with a shared three-second countdown.
 - **Duel:** first solve opens a **750 ms** synchronization window. Solvers within it are compared by accepted guess count, then server-recorded elapsed milliseconds. Exactly equal results draw. Once a player is solved, out of time, or out of attempts, they cannot submit again. If both are done, the server resolves immediately.
@@ -149,7 +149,7 @@ PostgreSQL transaction → SELECT ... FOR UPDATE on private.room_states
    ├─ public projections  → participants, match status, own attempts, votes
    └─ public.room_events  → revision-only Realtime invalidation
    ▼
-Per-player JSON snapshot → own evaluated guesses + masked opponent counts
+Per-player JSON snapshot → own evaluated guesses + opponent colors without letters
 ```
 
 - `src/lib/game/`: scoring, validation, types, state transitions and winner comparison. Scoring and rule decisions are independently tested.

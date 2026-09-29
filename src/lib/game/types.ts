@@ -48,7 +48,9 @@ export type PlayerView = Omit<Player, 'attempts'> & {
   count: number;
   solved: boolean;
   timedOut: boolean;
-  /** Both clocks are public; words and per-letter marks remain private. */
+  /** Public evaluations only; opponent letters remain private until results. */
+  guessMarks: Mark[][];
+  /** Both clocks are public. */
   timerEndsAt?: number | null;
   timerStoppedAt?: number | null;
   attempts?: Attempt[];

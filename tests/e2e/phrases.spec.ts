@@ -27,6 +27,10 @@ test('Words and Phrases switch cleanly, retain separate progress, validate, solv
   await page.getByRole('button', { name: 'Create a private room' }).click();
   await expect(page).toHaveURL(/\/room\//);
   const wordsUrl = page.url();
+  await expect(page.getByRole('navigation', { name: 'Game mode' })).toHaveCount(
+    0,
+  );
+  await page.getByRole('link', { name: 'Home', exact: true }).click();
   await page
     .getByRole('link', { name: 'Letterlane Phrases', exact: true })
     .click();
@@ -54,6 +58,9 @@ test('Words and Phrases switch cleanly, retain separate progress, validate, solv
   await page.getByRole('button', { name: 'Create a private room' }).click();
   await expect(page).toHaveURL(/\/room\//);
   const phraseUrl = page.url();
+  await expect(page.getByRole('navigation', { name: 'Game mode' })).toHaveCount(
+    0,
+  );
   const snapshot = () =>
     page.evaluate(
       async () =>
@@ -69,6 +76,9 @@ test('Words and Phrases switch cleanly, retain separate progress, validate, solv
   const friend = await friendContext.newPage();
   try {
     await friend.goto(phraseUrl);
+    await expect(
+      friend.getByRole('navigation', { name: 'Game mode' }),
+    ).toHaveCount(0);
     await friend.getByLabel('Your display name').fill('Friend');
     await friend.getByRole('button', { name: 'Join your friend' }).click();
     await Promise.all([
@@ -175,6 +185,34 @@ test('Words and Phrases switch cleanly, retain separate progress, validate, solv
       (await fetch(`/api/rooms/${location.pathname.split('/').at(-1)}`)).json(),
     );
     expect(friendView.players[0]).not.toHaveProperty('attempts');
+    expect(friendView.players[0].guessMarks).toEqual([
+      saved.players[0].attempts![0].marks,
+    ]);
+    expect(JSON.stringify(friendView)).not.toContain(
+      'CAPTIONBREAKMOTHERTHENWORLD',
+    );
+    const opponentTiles = friend
+      .locator('.masked-row')
+      .first()
+      .locator('.masked-tile');
+    await expect(opponentTiles).toHaveClass(
+      saved.players[0].attempts![0].marks.map((mark) => `masked-tile ${mark}`),
+    );
+    expect(await opponentTiles.allTextContents()).toEqual(Array(27).fill(''));
+    await expect(
+      friend.locator('.masked-row').first().locator('.masked-word'),
+    ).toHaveCount(5);
+    expect(
+      await friend.locator('.masked-board').evaluate((board) => {
+        const box = board.getBoundingClientRect();
+        return (
+          [...board.querySelectorAll('.masked-word')].every((word) => {
+            const rect = word.getBoundingClientRect();
+            return rect.left >= box.left && rect.right <= box.right + 1;
+          }) && document.documentElement.scrollWidth <= innerWidth
+        );
+      }),
+    ).toBe(true);
     await page.reload();
     await expect(
       page.getByRole('group', {
@@ -245,8 +283,8 @@ test('Words and Phrases switch cleanly, retain separate progress, validate, solv
     );
     await page.goto(wordsUrl);
     await expect(
-      page.getByRole('link', { name: 'Letterlane Words', exact: true }),
-    ).toHaveAttribute('aria-current', 'page');
+      page.getByRole('navigation', { name: 'Game mode' }),
+    ).toHaveCount(0);
     const words = await snapshot();
     expect(words.game).toBe('words');
     expect(words.players[0].count).toBe(0);

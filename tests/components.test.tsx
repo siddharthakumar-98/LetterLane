@@ -29,13 +29,77 @@ it('announces evaluated letters and renders six rows', () => {
   ).toBeTruthy();
   expect(screen.getByLabelText('Guess 6, empty')).toBeTruthy();
 });
-it('opponent board exposes counts without letters or evaluations', () => {
-  const { container } = render(<MaskedBoard count={2} />);
-  expect(screen.getByRole('img').getAttribute('aria-label')).toContain(
+it('opponent board shows evaluated colors and accessible descriptions without letters', () => {
+  const { container } = render(
+    <MaskedBoard
+      count={2}
+      guessMarks={[
+        ['present', 'absent', 'absent', 'present', 'absent'],
+        ['present', 'absent', 'correct', 'absent', 'present'],
+      ]}
+    />,
+  );
+  expect(screen.getByRole('group').getAttribute('aria-label')).toContain(
     '2 of 6',
   );
+  expect(
+    screen.getByRole('img', {
+      name: 'Opponent guess 2: yellow, grey, green, grey, yellow',
+    }),
+  ).toBeTruthy();
+  expect(container.querySelectorAll('.correct')).toHaveLength(1);
+  expect(container.querySelectorAll('.present')).toHaveLength(4);
+  expect(container.querySelectorAll('.absent')).toHaveLength(5);
+  expect(container.querySelectorAll('.masked-tile')).toHaveLength(30);
+  expect(
+    [...container.querySelectorAll('.masked-tile')].every(
+      (tile) => tile.textContent === '',
+    ),
+  ).toBe(true);
+  expect(
+    screen.getByRole('img', { name: 'Opponent guess 3: empty' }),
+  ).toBeTruthy();
+});
+it('opponent phrase colors follow word boundaries and include blue without letter or punctuation tiles', () => {
+  const { container } = render(
+    <MaskedBoard
+      count={1}
+      template="___ ___'_"
+      guessMarks={[
+        [
+          'correct',
+          'present',
+          'elsewhere',
+          'absent',
+          'correct',
+          'absent',
+          'present',
+        ],
+      ]}
+    />,
+  );
+  expect(
+    screen.getByRole('img', {
+      name: 'Opponent guess 1: green, orange, blue, grey, green, grey, orange',
+    }),
+  ).toBeTruthy();
+  const row = container.querySelector('.masked-row')!;
+  expect(
+    [...row.querySelectorAll('.masked-word')].map(
+      (word) => word.children.length,
+    ),
+  ).toEqual([3, 4]);
+  expect(row.querySelectorAll('.elsewhere')).toHaveLength(1);
+  expect(
+    [...row.querySelectorAll('.masked-tile')].every(
+      (tile) => tile.textContent === '',
+    ),
+  ).toBe(true);
+  expect(container.querySelectorAll('.masked-tile')).toHaveLength(42);
+});
+it('keeps a neutral fallback for snapshots without color history', () => {
+  const { container } = render(<MaskedBoard count={2} />);
   expect(container.querySelectorAll('.filled')).toHaveLength(10);
-  expect(container.querySelectorAll('.correct,.present')).toHaveLength(0);
 });
 it('keyboard supports accessible submit/delete and disabled interaction', () => {
   const onKey = vi.fn();

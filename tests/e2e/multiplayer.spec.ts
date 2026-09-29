@@ -97,12 +97,12 @@ test('two guests create, join, ready, play concurrently, reconnect, finish and r
     for (let i = 0; i < 5; i++) await page.keyboard.press('Backspace');
     await Promise.all([enterWord(page, 'SLATE'), enterWord(friend, 'APPLE')]);
     await expect(
-      page.getByRole('img', {
+      page.getByRole('group', {
         name: 'Opponent has used 1 of 6 guesses. Letters are hidden.',
       }),
     ).toBeVisible();
     await expect(
-      friend.getByRole('img', {
+      friend.getByRole('group', {
         name: 'Opponent has used 1 of 6 guesses. Letters are hidden.',
       }),
     ).toBeVisible();
@@ -112,6 +112,21 @@ test('two guests create, join, ready, play concurrently, reconnect, finish and r
     );
     expect(JSON.stringify(masked)).not.toContain('APPLE');
     expect(masked.match).not.toHaveProperty('answer');
+    expect(masked.players[1].guessMarks).toEqual([
+      ['present', 'absent', 'absent', 'absent', 'correct'],
+    ]);
+    await expect(
+      page.locator('.masked-row').first().locator('.masked-tile'),
+    ).toHaveClass([
+      'masked-tile present',
+      'masked-tile absent',
+      'masked-tile absent',
+      'masked-tile absent',
+      'masked-tile correct',
+    ]);
+    expect(await page.locator('.masked-tile').allTextContents()).toEqual(
+      Array(30).fill(''),
+    );
     expect(masked.players[0].timerEndsAt - masked.match.startsAt).toBe(130000);
     expect(masked.players[1].timerEndsAt - masked.match.startsAt).toBe(130000);
     await expect(

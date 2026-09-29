@@ -293,6 +293,7 @@ export function projectRoom(
     players: room.players.map(({ attempts, ...p }) => ({
       ...p,
       count: attempts.length,
+      guessMarks: attempts.map(({ marks }) => [...marks]),
       solved: solved({ attempts }),
       timedOut: outOfTime(room, { ...p, attempts }, now),
       timerEndsAt:
