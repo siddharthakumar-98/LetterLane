@@ -41,6 +41,9 @@ beforeAll(async () => {
   await db.exec(
     await readFile('supabase/migrations/202609220001_phrases.sql', 'utf8'),
   );
+  await db.exec(
+    await readFile('supabase/migrations/202609290001_word_lengths.sql', 'utf8'),
+  );
   server = new PGLiteSocketServer({ db, path: join(folder, '.s.PGSQL.5432') });
   await server.start();
   vi.stubEnv('GAME_BACKEND', 'supabase');
@@ -240,3 +243,58 @@ it('stores phrase guesses and blue marks through the production Postgres driver'
     (await roomOperation(room.code, friend)).players[0],
   ).not.toHaveProperty('attempts');
 });
+
+it.each([6, 7] as const)(
+  'stores %i-letter words through the production Postgres driver',
+  async (length) => {
+    const owner = randomUUID(),
+      friend = randomUUID();
+    const created = await createRoom(
+      owner,
+      'Ada',
+      'coop',
+      'medium',
+      'words',
+      length,
+    );
+    const answer = length === 6 ? 'GARDEN' : 'JOURNEY';
+    await roomOperation(created.code, friend, { type: 'join', name: 'Max' });
+    await roomOperation(created.code, owner, { type: 'ready' });
+    await roomOperation(created.code, friend, { type: 'ready' });
+    await transaction((tx) =>
+      tx.query(
+        `update private.room_states set state=jsonb_set(jsonb_set(jsonb_set(state,'{match,phase}','"active"'),'{match,answer}',$2::text::jsonb),'{match,startsAt}',to_jsonb((extract(epoch from clock_timestamp())*1000-1000)::bigint)) where room_id=$1`,
+        [created.id, JSON.stringify(answer)],
+      ),
+    );
+    await expect(
+      roomOperation(created.code, owner, {
+        type: 'guess',
+        word: 'CRANE',
+        matchId: created.match.id,
+        requestId: randomUUID(),
+      }),
+    ).rejects.toMatchObject({ status: 422 });
+    const complete = await roomOperation(created.code, owner, {
+      type: 'guess',
+      word: answer,
+      matchId: created.match.id,
+      requestId: randomUUID(),
+    });
+    expect(complete.match.phase).toBe('complete');
+    expect(complete.wordLength).toBe(length);
+    expect(complete.players[0].attempts?.[0].marks).toEqual(
+      Array(length).fill('correct'),
+    );
+    const reloaded = await roomOperation(created.code, friend);
+    expect(reloaded.wordLength).toBe(length);
+    expect(reloaded.players[0].attempts).toEqual(complete.players[0].attempts);
+    expect(
+      await transaction((tx) =>
+        tx.query('select word from public.guess_attempts where match_id=$1', [
+          created.match.id,
+        ]),
+      ),
+    ).toEqual([{ word: answer }]);
+  },
+);

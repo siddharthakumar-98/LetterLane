@@ -2,7 +2,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import brandLogo from '@/app/icon.jpg';
-import type { GameKind } from '@/lib/game/types';
+import type { GameKind, WordLength } from '@/lib/game/types';
+import { WORD_LEVELS } from '@/lib/game/word-length';
 import { PhraseInstructions } from './phrase-instructions';
 import { useRef } from 'react';
 import { ArrowUpRight, HelpCircle, X } from 'lucide-react';
@@ -14,7 +15,13 @@ export function Logo() {
     </Link>
   );
 }
-export function HowToPlay({ game = 'words' }: { game?: GameKind }) {
+export function HowToPlay({
+  game = 'words',
+  wordLength = 5,
+}: {
+  game?: GameKind;
+  wordLength?: WordLength;
+}) {
   const ref = useRef<HTMLDialogElement>(null);
   return (
     <>
@@ -49,12 +56,13 @@ export function HowToPlay({ game = 'words' }: { game?: GameKind }) {
         ) : (
           <>
             <h2 id="how-title">
-              Five letters. Six chances.
+              {wordLength} letters. Six chances.
               <br />A friend on the other side.
             </h2>
             <p>
-              Find the same hidden word at the same time. Enter a five-letter
-              word, then use the colors to narrow it down.
+              Find the same hidden word at the same time. Enter a{' '}
+              {WORD_LEVELS[wordLength].name}-letter word, then use the colors to
+              narrow it down.
             </p>
             <div className="legend-list">
               <div>
@@ -126,10 +134,12 @@ export function Header({
   children,
   game = 'words',
   showGameSwitch = true,
+  wordLength = 5,
 }: {
   children?: React.ReactNode;
   game?: GameKind;
   showGameSwitch?: boolean;
+  wordLength?: WordLength;
 }) {
   return (
     <header className="site-header">
@@ -154,18 +164,24 @@ export function Header({
       )}
       <nav aria-label="Main navigation">
         {children}
-        <HowToPlay game={game} />
+        <HowToPlay game={game} wordLength={wordLength} />
       </nav>
     </header>
   );
 }
-export function Footer({ game = 'words' }: { game?: GameKind }) {
+export function Footer({
+  game = 'words',
+  wordLength = 5,
+}: {
+  game?: GameKind;
+  wordLength?: WordLength;
+}) {
   return (
     <footer className="site-footer">
       <span>A little friendly wordplay.</span>
       <span>
         2 players <span aria-hidden="true">/</span>{' '}
-        {game === 'phrases' ? 'up to 7 words' : '5 letters'}{' '}
+        {game === 'phrases' ? 'up to 7 words' : `${wordLength} letters`}{' '}
         <span aria-hidden="true">/</span> endless rematches
       </span>
     </footer>

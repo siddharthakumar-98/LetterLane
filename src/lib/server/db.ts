@@ -44,11 +44,25 @@ async function localDB() {
         'utf8',
       ),
     );
+    // Do not reinstall the old five-letter-only constraint on existing rooms.
+    const { rows: phraseColumns } = await db.query(
+      "select 1 from information_schema.columns where table_schema='public' and table_name='guess_attempts' and column_name='game'",
+    );
+    if (!phraseColumns.length)
+      await db.exec(
+        await fs.readFile(
+          path.join(
+            process.cwd(),
+            'supabase/migrations/202609220001_phrases.sql',
+          ),
+          'utf8',
+        ),
+      );
     await db.exec(
       await fs.readFile(
         path.join(
           process.cwd(),
-          'supabase/migrations/202609220001_phrases.sql',
+          'supabase/migrations/202609290001_word_lengths.sql',
         ),
         'utf8',
       ),

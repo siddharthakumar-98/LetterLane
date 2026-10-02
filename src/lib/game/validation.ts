@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { GameError } from './types';
+import type { WordLength } from './types';
+import { wordLengthMessage } from './word-length';
 export const nameSchema = z
   .string()
   .trim()
@@ -19,6 +21,7 @@ export const createSchema = z
     name: nameSchema,
     mode: z.enum(['duel', 'coop']),
     game: z.enum(['words', 'phrases']).default('words'),
+    wordLength: z.union([z.literal(5), z.literal(6), z.literal(7)]).default(5),
     botDifficulty: z.enum(['easy', 'medium', 'hard']).default('hard'),
   })
   .strict();
@@ -37,10 +40,14 @@ export const actionSchema = z.discriminatedUnion('type', [
     })
     .strict(),
 ]);
-export function validateGuess(value: string, allowed: ReadonlySet<string>) {
+export function validateGuess(
+  value: string,
+  allowed: ReadonlySet<string>,
+  length: WordLength = 5,
+) {
   const word = value.trim().toUpperCase();
-  if (!/^[A-Z]{5}$/.test(word))
-    throw new GameError('Your guess needs exactly five letters.', 422);
+  if (!/^[A-Z]+$/.test(word) || word.length !== length)
+    throw new GameError(wordLengthMessage(length), 422);
   if (!allowed.has(word))
     throw new GameError(
       'That word is not in our dictionary. Try another.',

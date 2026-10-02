@@ -10,6 +10,7 @@ import {
   type Room,
   type BotDifficulty,
   type GameKind,
+  type WordLength,
 } from '../game/types';
 import { advanceBots } from './bots';
 import { rateLimit } from './rate-limit';
@@ -82,6 +83,7 @@ export async function createRoom(
   mode: Mode,
   botDifficulty: BotDifficulty = 'hard',
   game: GameKind = 'words',
+  wordLength: WordLength = 5,
 ) {
   await transaction((db) => rateLimit(db, `create:${playerId}`, 12, 3600));
   return transaction(async (db) => {
@@ -107,6 +109,7 @@ export async function createRoom(
       mode,
       botDifficulty,
       game,
+      ...(game === 'words' ? { wordLength } : {}),
       revision: 0,
       createdAt: now,
       expiresAt: now + 86400000,
@@ -124,7 +127,7 @@ export async function createRoom(
         id: randomUUID(),
         round: 1,
         phase: 'lobby',
-        answer: pickPuzzle(game),
+        answer: pickPuzzle(game, undefined, wordLength),
         startsAt: null,
         deadline: null,
         endedAt: null,
@@ -173,8 +176,13 @@ export async function roomOperation(
           playerId,
           action,
           now,
-          puzzleWords(candidate.game),
-          () => pickPuzzle(candidate.game, candidate.match.answer),
+          puzzleWords(candidate.game, candidate.wordLength),
+          () =>
+            pickPuzzle(
+              candidate.game,
+              candidate.match.answer,
+              candidate.wordLength,
+            ),
           randomUUID,
         );
         room = candidate;

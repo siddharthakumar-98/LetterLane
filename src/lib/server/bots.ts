@@ -7,9 +7,15 @@ import {
   solved,
   outOfTime,
 } from '../game/rules';
-import type { Action, Room, BotDifficulty, GameKind } from '../game/types';
+import type {
+  Action,
+  Room,
+  BotDifficulty,
+  GameKind,
+  WordLength,
+} from '../game/types';
 import { BOT_PROFILES } from '../game/bot-difficulty';
-import { ANSWERS } from './words';
+import { answersForLength } from './words';
 import { puzzleWords, pickPuzzle } from './puzzles';
 import { phraseTemplate } from '../game/phrases';
 import { choosePhraseBotGuess } from './phrase-bot';
@@ -21,7 +27,11 @@ export type BotServices = {
   id: () => string;
   randomIndex: (length: number) => number;
   thinkMs: (difficulty: BotDifficulty) => number;
-  nextAnswer: (previous: string, game?: GameKind) => string;
+  nextAnswer: (
+    previous: string,
+    game?: GameKind,
+    length?: WordLength,
+  ) => string;
 };
 const production: BotServices = {
   id: randomUUID,
@@ -30,7 +40,7 @@ const production: BotServices = {
     const profile = BOT_PROFILES[difficulty];
     return randomInt(profile.thinkMinMs, profile.thinkMaxMs + 1);
   },
-  nextAnswer: (previous, game) => pickPuzzle(game, previous),
+  nextAnswer: (previous, game, length) => pickPuzzle(game, previous, length),
 };
 
 /** Call only under the room's DB row lock. No timers or jobs survive a request. */
@@ -44,8 +54,8 @@ export function advanceBots(room: Room, now: number, services = production) {
       id,
       action,
       now,
-      puzzleWords(room.game),
-      () => services.nextAnswer(room.match.answer, room.game),
+      puzzleWords(room.game, room.wordLength),
+      () => services.nextAnswer(room.match.answer, room.game, room.wordLength),
       services.id,
     );
   const bot = room.players.find((player) => player.isBot);
@@ -79,7 +89,12 @@ export function advanceBots(room: Room, now: number, services = production) {
           services.randomIndex,
           difficulty,
         )
-      : chooseBotGuess(bot.attempts, ANSWERS, services.randomIndex, difficulty);
+      : chooseBotGuess(
+          bot.attempts,
+          answersForLength(room.wordLength),
+          services.randomIndex,
+          difficulty,
+        );
   act(bot.id, {
     type: 'guess',
     word,

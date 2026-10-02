@@ -212,7 +212,7 @@ export function applyAction(
             phraseTemplate(room.match.answer),
             allowed,
           )
-        : validateGuess(action.word, allowed);
+        : validateGuess(action.word, allowed, room.wordLength ?? 5);
     if (player.attempts.some((a) => a.word === word))
       throw new GameError(
         room.game === 'phrases'
@@ -277,6 +277,7 @@ export function projectRoom(
     code: room.code,
     mode: room.mode,
     game: room.game ?? 'words',
+    ...(room.game !== 'phrases' ? { wordLength: room.wordLength ?? 5 } : {}),
     botDifficulty: room.botDifficulty ?? 'hard',
     revision: room.revision,
     createdAt: room.createdAt,

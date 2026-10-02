@@ -21,13 +21,21 @@ import {
 import { Header, Footer } from './chrome';
 import { api, ApiError } from '@/lib/client/api';
 import { codeSchema, nameSchema } from '@/lib/game/validation';
-import type { Mode, RoomView, BotDifficulty, GameKind } from '@/lib/game/types';
+import type {
+  Mode,
+  RoomView,
+  BotDifficulty,
+  GameKind,
+  WordLength,
+} from '@/lib/game/types';
 import { BOT_PROFILES } from '@/lib/game/bot-difficulty';
+import { WORD_LENGTHS, WORD_LEVELS } from '@/lib/game/word-length';
 export default function Home({ game = 'words' }: { game?: GameKind }) {
   const router = useRouter();
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [mode, setMode] = useState<Mode>('duel');
+  const [wordLength, setWordLength] = useState<WordLength>(5);
   const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>('medium');
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
@@ -49,7 +57,13 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
         join ? `/api/rooms/${parsedCode.data}` : '/api/rooms',
         join
           ? { type: 'join', name: parsedName.data }
-          : { name: parsedName.data, mode, botDifficulty, game },
+          : {
+              name: parsedName.data,
+              mode,
+              botDifficulty,
+              game,
+              ...(game === 'words' ? { wordLength } : {}),
+            },
       );
       localStorage.setItem(
         game === 'phrases' ? 'letterlane-phrases-name' : 'letterlane-name',
@@ -67,7 +81,7 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
   }
   return (
     <div className={`page-shell ${game === 'phrases' ? 'phrase-mode' : ''}`}>
-      <Header game={game} />
+      <Header game={game} wordLength={wordLength} />
       <main className="home-main">
         <section className="start-panel" aria-labelledby="home-title">
           <h1 id="home-title">
@@ -166,7 +180,7 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
               </div>
               <div className="three-facts">
                 <div>
-                  <strong>05</strong>
+                  <strong>5–7</strong>
                   <span>letters to find</span>
                 </div>
                 <div>
@@ -185,7 +199,7 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
             <br />
             {game === 'phrases'
               ? 'Familiar sayings. A whole new way to play.'
-              : 'Your next five-letter obsession starts here.'}
+              : 'Your next word obsession starts here.'}
           </p>
           <form
             className="start-form"
@@ -239,6 +253,32 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
                 {mode === 'coop' && <Check className="mode-check" size={16} />}
               </label>
             </fieldset>
+            {game === 'words' && (
+              <fieldset className="difficulty-picker" disabled={!!busy}>
+                <legend>Word difficulty</legend>
+                <div className="difficulty-options">
+                  {WORD_LENGTHS.map((length) => (
+                    <label
+                      key={length}
+                      className={wordLength === length ? 'selected' : ''}
+                    >
+                      <input
+                        type="radio"
+                        name="word-length"
+                        value={length}
+                        checked={wordLength === length}
+                        onChange={() => setWordLength(length)}
+                      />
+                      <span>
+                        <strong>{WORD_LEVELS[length].label}</strong>
+                        <small>{length} letters</small>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <p>Both players use this word length for every round.</p>
+              </fieldset>
+            )}
             <fieldset
               className="difficulty-picker"
               disabled={!!busy}
@@ -320,7 +360,7 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
           </p>
         </section>
       </main>
-      <Footer game={game} />
+      <Footer game={game} wordLength={wordLength} />
     </div>
   );
 }

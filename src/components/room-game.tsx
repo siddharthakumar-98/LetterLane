@@ -22,6 +22,7 @@ import { initialTime, timeBonus } from '@/lib/game/round-clock';
 import { useRoom } from '@/lib/client/use-room';
 import type { PlayerView, RoomView } from '@/lib/game/types';
 import { nameSchema } from '@/lib/game/validation';
+import { WORD_LEVELS, wordLengthMessage } from '@/lib/game/word-length';
 import { phraseMetadata } from '@/lib/game/phrases';
 import { usePhraseValidation } from '@/lib/client/use-phrase-validation';
 import { PhraseInstructions } from './phrase-instructions';
@@ -92,7 +93,11 @@ function Lobby({
             <HeartHandshake size={28} />
           )}
         </div>
-        <span className="eyebrow">YOUR PRIVATE ROOM</span>
+        <span className="eyebrow">
+          YOUR PRIVATE ROOM
+          {room.game !== 'phrases' &&
+            ` · ${WORD_LEVELS[room.wordLength ?? 5].label} · ${room.wordLength ?? 5} letters`}
+        </span>
         <h1>
           {room.players.length === 1
             ? 'Save a seat for a friend.'
@@ -243,7 +248,10 @@ export function RoomGame({ code }: { code: string }) {
   const phase = room?.match.phase;
   const phrases = room?.game === 'phrases';
   const template = room?.match.phraseTemplate;
-  const letterCount = template ? phraseMetadata(template).letterCount : 5;
+  const wordLength = room?.wordLength ?? 5;
+  const letterCount = template
+    ? phraseMetadata(template).letterCount
+    : wordLength;
   const homePath = phrases ? '/phrases' : '/';
   const lastAttempt = me?.attempts?.at(-1);
   const clockStopped = me?.solved || me?.count === 6;
@@ -302,7 +310,7 @@ export function RoomGame({ code }: { code: string }) {
           setError(
             phrases
               ? `Fill all ${letterCount} letters before submitting.`
-              : 'Your guess needs exactly five letters.',
+              : wordLengthMessage(wordLength),
           );
           return;
         }
@@ -328,7 +336,7 @@ export function RoomGame({ code }: { code: string }) {
         }
       }
     },
-    [canGuess, room, input, act, setError, letterCount, phrases],
+    [canGuess, room, input, act, setError, letterCount, phrases, wordLength],
   );
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -368,7 +376,7 @@ export function RoomGame({ code }: { code: string }) {
     : 0;
   return (
     <div className={`page-shell room-shell ${phrases ? 'phrase-mode' : ''}`}>
-      <Header game={room?.game} showGameSwitch={false}>
+      <Header game={room?.game} wordLength={wordLength} showGameSwitch={false}>
         <button
           className="text-button share-button"
           onClick={() => void copy()}
@@ -524,6 +532,7 @@ export function RoomGame({ code }: { code: string }) {
                     attempts={me?.attempts ?? []}
                     input={input}
                     template={template}
+                    wordLength={wordLength}
                   />
                   {phase === 'countdown' && (
                     <div className="countdown-overlay" role="status">
@@ -563,7 +572,7 @@ export function RoomGame({ code }: { code: string }) {
                       <span>
                         {phrases
                           ? `${phraseMetadata(template!).wordCount} words · ${letterCount} letters. Spaces and punctuation are automatic.`
-                          : 'Trust your hunch. Make it five letters.'}
+                          : `Trust your hunch. Make it ${WORD_LEVELS[wordLength].name} letters.`}
                       </span>
                     )}
                   </div>
@@ -591,6 +600,7 @@ export function RoomGame({ code }: { code: string }) {
                   count={opponent?.count ?? 0}
                   guessMarks={opponent?.guessMarks}
                   template={template}
+                  wordLength={wordLength}
                 />
                 {phrases && (
                   <details className="phrase-help">
@@ -654,7 +664,7 @@ export function RoomGame({ code }: { code: string }) {
             .join(', ')}
         </div>
       </main>
-      <Footer game={room?.game} />
+      <Footer game={room?.game} wordLength={wordLength} />
     </div>
   );
 }
