@@ -298,3 +298,40 @@ it.each([6, 7] as const)(
     ).toEqual([{ word: answer }]);
   },
 );
+
+it.each(['easy', 'normal'] as const)(
+  'round-trips %s phrase difficulty through Postgres.js and rematches',
+  async (difficulty) => {
+    const owner = randomUUID(),
+      friend = randomUUID();
+    const room = await createRoom(
+      owner,
+      'Ada',
+      'coop',
+      'medium',
+      'phrases',
+      5,
+      difficulty,
+    );
+    const joined = await roomOperation(room.code, friend, {
+      type: 'join',
+      name: 'Max',
+    });
+    expect(joined.phraseDifficulty).toBe(difficulty);
+    await transaction((tx) =>
+      tx.query(
+        `update private.room_states set state=jsonb_set(state,'{match,phase}','"complete"') where room_id=$1`,
+        [room.id],
+      ),
+    );
+    await roomOperation(room.code, owner, { type: 'rematch' });
+    const next = await roomOperation(room.code, friend, { type: 'rematch' });
+    expect(next.phraseDifficulty).toBe(difficulty);
+    expect(next.match.round).toBe(2);
+    const count = next.match.phraseTemplate!.split(' ').length;
+    expect(count).toBeLessThanOrEqual(difficulty === 'easy' ? 5 : 7);
+    expect((await roomOperation(room.code, owner)).phraseDifficulty).toBe(
+      difficulty,
+    );
+  },
+);

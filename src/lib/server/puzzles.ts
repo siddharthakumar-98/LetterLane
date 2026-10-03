@@ -1,5 +1,5 @@
 import 'server-only';
-import type { GameKind, WordLength } from '../game/types';
+import type { GameKind, WordLength, PhraseDifficulty } from '../game/types';
 import { wordsForLength, pickAnswer } from './words';
 import { PHRASE_WORDS, pickPhrase } from './phrases';
 export const puzzleWords = (
@@ -10,4 +10,8 @@ export const pickPuzzle = (
   game: GameKind = 'words',
   previous?: string,
   length: WordLength = 5,
-) => (game === 'phrases' ? pickPhrase(previous) : pickAnswer(previous, length));
+  phraseDifficulty: PhraseDifficulty = 'normal',
+) =>
+  game === 'phrases'
+    ? pickPhrase(previous, phraseDifficulty)
+    : pickAnswer(previous, length);

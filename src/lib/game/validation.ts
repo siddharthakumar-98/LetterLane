@@ -22,6 +22,7 @@ export const createSchema = z
     mode: z.enum(['duel', 'coop']),
     game: z.enum(['words', 'phrases']).default('words'),
     wordLength: z.union([z.literal(5), z.literal(6), z.literal(7)]).default(5),
+    phraseDifficulty: z.enum(['easy', 'normal']).default('normal'),
     botDifficulty: z.enum(['easy', 'medium', 'hard']).default('hard'),
   })
   .strict();

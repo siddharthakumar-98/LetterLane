@@ -278,6 +278,9 @@ export function projectRoom(
     mode: room.mode,
     game: room.game ?? 'words',
     ...(room.game !== 'phrases' ? { wordLength: room.wordLength ?? 5 } : {}),
+    ...(room.game === 'phrases'
+      ? { phraseDifficulty: room.phraseDifficulty ?? 'normal' }
+      : {}),
     botDifficulty: room.botDifficulty ?? 'hard',
     revision: room.revision,
     createdAt: room.createdAt,

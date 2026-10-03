@@ -23,6 +23,7 @@ import { useRoom } from '@/lib/client/use-room';
 import type { PlayerView, RoomView } from '@/lib/game/types';
 import { nameSchema } from '@/lib/game/validation';
 import { WORD_LEVELS, wordLengthMessage } from '@/lib/game/word-length';
+import { PHRASE_LEVELS } from '@/lib/game/phrase-difficulty';
 import { phraseMetadata } from '@/lib/game/phrases';
 import { usePhraseValidation } from '@/lib/client/use-phrase-validation';
 import { PhraseInstructions } from './phrase-instructions';
@@ -97,6 +98,8 @@ function Lobby({
           YOUR PRIVATE ROOM
           {room.game !== 'phrases' &&
             ` · ${WORD_LEVELS[room.wordLength ?? 5].label} · ${room.wordLength ?? 5} letters`}
+          {room.game === 'phrases' &&
+            ` · ${PHRASE_LEVELS[room.phraseDifficulty ?? 'normal'].label} · up to ${PHRASE_LEVELS[room.phraseDifficulty ?? 'normal'].maxWords} words`}
         </span>
         <h1>
           {room.players.length === 1
@@ -376,7 +379,12 @@ export function RoomGame({ code }: { code: string }) {
     : 0;
   return (
     <div className={`page-shell room-shell ${phrases ? 'phrase-mode' : ''}`}>
-      <Header game={room?.game} wordLength={wordLength} showGameSwitch={false}>
+      <Header
+        game={room?.game}
+        wordLength={wordLength}
+        phraseDifficulty={room?.phraseDifficulty}
+        showGameSwitch={false}
+      >
         <button
           className="text-button share-button"
           onClick={() => void copy()}
@@ -605,7 +613,7 @@ export function RoomGame({ code }: { code: string }) {
                 {phrases && (
                   <details className="phrase-help">
                     <summary>Phrase color hints</summary>
-                    <PhraseInstructions />
+                    <PhraseInstructions difficulty={room.phraseDifficulty} />
                   </details>
                 )}
                 <div className="opponent-note">
@@ -664,7 +672,11 @@ export function RoomGame({ code }: { code: string }) {
             .join(', ')}
         </div>
       </main>
-      <Footer game={room?.game} wordLength={wordLength} />
+      <Footer
+        game={room?.game}
+        wordLength={wordLength}
+        phraseDifficulty={room?.phraseDifficulty}
+      />
     </div>
   );
 }

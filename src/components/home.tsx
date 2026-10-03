@@ -27,15 +27,22 @@ import type {
   BotDifficulty,
   GameKind,
   WordLength,
+  PhraseDifficulty,
 } from '@/lib/game/types';
 import { BOT_PROFILES } from '@/lib/game/bot-difficulty';
 import { WORD_LENGTHS, WORD_LEVELS } from '@/lib/game/word-length';
+import {
+  PHRASE_DIFFICULTIES,
+  PHRASE_LEVELS,
+} from '@/lib/game/phrase-difficulty';
 export default function Home({ game = 'words' }: { game?: GameKind }) {
   const router = useRouter();
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [mode, setMode] = useState<Mode>('duel');
   const [wordLength, setWordLength] = useState<WordLength>(5);
+  const [phraseDifficulty, setPhraseDifficulty] =
+    useState<PhraseDifficulty>('normal');
   const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>('medium');
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
@@ -63,6 +70,7 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
               botDifficulty,
               game,
               ...(game === 'words' ? { wordLength } : {}),
+              ...(game === 'phrases' ? { phraseDifficulty } : {}),
             },
       );
       localStorage.setItem(
@@ -81,7 +89,11 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
   }
   return (
     <div className={`page-shell ${game === 'phrases' ? 'phrase-mode' : ''}`}>
-      <Header game={game} wordLength={wordLength} />
+      <Header
+        game={game}
+        wordLength={wordLength}
+        phraseDifficulty={phraseDifficulty}
+      />
       <main className="home-main">
         <section className="start-panel" aria-labelledby="home-title">
           <h1 id="home-title">
@@ -104,7 +116,7 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
               </div>
               <details className="phrase-help">
                 <summary>How to play Phrases</summary>
-                <PhraseInstructions />
+                <PhraseInstructions difficulty={phraseDifficulty} />
               </details>
             </section>
           ) : (
@@ -279,6 +291,39 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
                 <p>Both players use this word length for every round.</p>
               </fieldset>
             )}
+            {game === 'phrases' && (
+              <fieldset
+                className="difficulty-picker phrase-difficulty"
+                disabled={!!busy}
+              >
+                <legend>Phrase difficulty</legend>
+                <div className="difficulty-options">
+                  {PHRASE_DIFFICULTIES.map((difficulty) => (
+                    <label
+                      key={difficulty}
+                      className={
+                        phraseDifficulty === difficulty ? 'selected' : ''
+                      }
+                    >
+                      <input
+                        type="radio"
+                        name="phrase-difficulty"
+                        value={difficulty}
+                        checked={phraseDifficulty === difficulty}
+                        onChange={() => setPhraseDifficulty(difficulty)}
+                      />
+                      <span>
+                        <strong>{PHRASE_LEVELS[difficulty].label}</strong>
+                        <small>
+                          Up to {PHRASE_LEVELS[difficulty].maxWords} words
+                        </small>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <p>Both players use this phrase limit for every round.</p>
+              </fieldset>
+            )}
             <fieldset
               className="difficulty-picker"
               disabled={!!busy}
@@ -360,7 +405,11 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
           </p>
         </section>
       </main>
-      <Footer game={game} wordLength={wordLength} />
+      <Footer
+        game={game}
+        wordLength={wordLength}
+        phraseDifficulty={phraseDifficulty}
+      />
     </div>
   );
 }

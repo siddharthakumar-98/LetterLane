@@ -2,8 +2,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import brandLogo from '@/app/icon.jpg';
-import type { GameKind, WordLength } from '@/lib/game/types';
+import type { GameKind, WordLength, PhraseDifficulty } from '@/lib/game/types';
 import { WORD_LEVELS } from '@/lib/game/word-length';
+import { PHRASE_LEVELS } from '@/lib/game/phrase-difficulty';
 import { PhraseInstructions } from './phrase-instructions';
 import { useRef } from 'react';
 import { ArrowUpRight, HelpCircle, X } from 'lucide-react';
@@ -18,9 +19,11 @@ export function Logo() {
 export function HowToPlay({
   game = 'words',
   wordLength = 5,
+  phraseDifficulty = 'normal',
 }: {
   game?: GameKind;
   wordLength?: WordLength;
+  phraseDifficulty?: PhraseDifficulty;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   return (
@@ -51,7 +54,7 @@ export function HowToPlay({
         {game === 'phrases' ? (
           <>
             <h2 id="how-title">One phrase. Six chances.</h2>
-            <PhraseInstructions />
+            <PhraseInstructions difficulty={phraseDifficulty} />
           </>
         ) : (
           <>
@@ -135,11 +138,13 @@ export function Header({
   game = 'words',
   showGameSwitch = true,
   wordLength = 5,
+  phraseDifficulty = 'normal',
 }: {
   children?: React.ReactNode;
   game?: GameKind;
   showGameSwitch?: boolean;
   wordLength?: WordLength;
+  phraseDifficulty?: PhraseDifficulty;
 }) {
   return (
     <header className="site-header">
@@ -164,7 +169,11 @@ export function Header({
       )}
       <nav aria-label="Main navigation">
         {children}
-        <HowToPlay game={game} wordLength={wordLength} />
+        <HowToPlay
+          game={game}
+          wordLength={wordLength}
+          phraseDifficulty={phraseDifficulty}
+        />
       </nav>
     </header>
   );
@@ -172,16 +181,20 @@ export function Header({
 export function Footer({
   game = 'words',
   wordLength = 5,
+  phraseDifficulty = 'normal',
 }: {
   game?: GameKind;
   wordLength?: WordLength;
+  phraseDifficulty?: PhraseDifficulty;
 }) {
   return (
     <footer className="site-footer">
       <span>A little friendly wordplay.</span>
       <span>
         2 players <span aria-hidden="true">/</span>{' '}
-        {game === 'phrases' ? 'up to 7 words' : `${wordLength} letters`}{' '}
+        {game === 'phrases'
+          ? `up to ${PHRASE_LEVELS[phraseDifficulty].maxWords} words`
+          : `${wordLength} letters`}{' '}
         <span aria-hidden="true">/</span> endless rematches
       </span>
     </footer>
