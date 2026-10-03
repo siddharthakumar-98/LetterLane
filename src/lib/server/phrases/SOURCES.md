@@ -10,6 +10,15 @@
 - Entries have two to seven space-delimited words, with at most 15 letters per word and 105 total letters. Eight-word `Beauty is in the eye of the beholder` and eleven-word `A journey of a thousand miles begins with a single step` are deliberately excluded. The runtime collection loader also rejects malformed/oversized entries and removes duplicates.
 - More collections can be added as JSON with `id`, `title`, `source`, and `phrases`, then registered in `PHRASE_COLLECTIONS` in `../phrases.ts`. Each loaded entry has a stable collection-prefixed ID, normalized text, `wordCount`, and `letterCount` for future filtering.
 
+## Difficulty selection
+
+The complete 51-entry collection remains **Normal** (up to seven words). **Easy**
+uses the 27 entries whose normalized `wordCount` is at most five; phrases are
+neither rewritten nor truncated. Both pools retain existing punctuation and
+character limits. New collections are filtered by the same metadata. Selection
+is random within the pool and excludes the preceding answer, including rematches.
+Difficulty does not change the global validation vocabulary or reveal answer words.
+
 ## Phrase validation vocabulary
 
 - Source: [SCOWL / English Speller Database](https://github.com/en-wl/wordlist), release **rel-2026.02.25**, commit `7e99edab8e32f9f9ea2b15f249ca8d4d67237410`.

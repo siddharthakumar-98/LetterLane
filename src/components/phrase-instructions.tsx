@@ -1,9 +1,18 @@
-export function PhraseInstructions() {
+import type { PhraseDifficulty } from '@/lib/game/types';
+import { PHRASE_LEVELS } from '@/lib/game/phrase-difficulty';
+
+export function PhraseInstructions({
+  difficulty = 'normal',
+}: {
+  difficulty?: PhraseDifficulty;
+}) {
   return (
     <div className="phrase-instructions">
       <p>
-        Your goal is to guess the missing phrase. Enter words to see if you can
-        guess it, and you’ll see colored boxes that will give you hints:
+        {PHRASE_LEVELS[difficulty].label} phrases contain up to{' '}
+        {PHRASE_LEVELS[difficulty].maxWords} words. Your goal is to guess the
+        missing phrase. Enter words to see if you can guess it, and you’ll see
+        colored boxes that will give you hints:
       </p>
       <div className="legend-list">
         <div>

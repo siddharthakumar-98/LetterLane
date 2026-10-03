@@ -3,6 +3,8 @@ import { randomInt } from 'node:crypto';
 import proverbs from './phrases/proverbs.json';
 import dictionary from './phrases/allowed-words.json';
 import { phraseEntry, phraseWords, playableLetters } from '../game/phrases';
+import type { PhraseDifficulty } from '../game/types';
+import { PHRASE_LEVELS } from '../game/phrase-difficulty';
 
 export const PHRASE_COLLECTIONS = [proverbs];
 const seen = new Set<string>();
@@ -56,16 +58,31 @@ for (const word of PHRASE_WORDS) {
   group.push(word);
   PHRASE_WORDS_BY_LENGTH.set(word.length, group);
 }
-export function pickPhrase(previous?: string) {
+export const phrasesForDifficulty = (difficulty: PhraseDifficulty = 'normal') =>
+  PHRASES.filter(
+    (phrase) => phrase.wordCount <= PHRASE_LEVELS[difficulty].maxWords,
+  );
+
+export function pickPhrase(
+  previous?: string,
+  difficulty: PhraseDifficulty = 'normal',
+) {
+  const options = phrasesForDifficulty(difficulty).filter(
+    (phrase) => phrase.text !== previous,
+  );
+  if (!options.length) throw new Error('No phrases available.');
   if (
     process.env.E2E_TEST_MODE === '1' &&
     process.env.GAME_BACKEND === 'local' &&
     !process.env.VERCEL
-  )
-    return previous === 'ACTIONS SPEAK LOUDER THAN WORDS'
-      ? "A LEOPARD CAN'T CHANGE ITS SPOTS"
-      : 'ACTIONS SPEAK LOUDER THAN WORDS';
-  const options = PHRASES.filter((phrase) => phrase.text !== previous);
-  if (!options.length) throw new Error('No phrases available.');
+  ) {
+    const next =
+      previous === 'ACTIONS SPEAK LOUDER THAN WORDS'
+        ? difficulty === 'easy'
+          ? 'BETTER LATE THAN NEVER'
+          : "A LEOPARD CAN'T CHANGE ITS SPOTS"
+        : 'ACTIONS SPEAK LOUDER THAN WORDS';
+    return options.find((phrase) => phrase.text === next)!.text;
+  }
   return options[randomInt(options.length)].text;
 }

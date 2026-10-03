@@ -1,6 +1,7 @@
 export type Mark = 'correct' | 'present' | 'elsewhere' | 'absent';
 export type GameKind = 'words' | 'phrases';
 export type WordLength = 5 | 6 | 7;
+export type PhraseDifficulty = 'easy' | 'normal';
 export type Mode = 'duel' | 'coop';
 export type BotDifficulty = 'easy' | 'medium' | 'hard';
 export type Attempt = {
@@ -24,6 +25,8 @@ export type Room = {
   game?: GameKind;
   /** Words rooms created before length selection use five letters. */
   wordLength?: WordLength;
+  /** Missing in older Phrases rooms, which retain Normal's seven-word limit. */
+  phraseDifficulty?: PhraseDifficulty;
   /** Missing in older rooms, which retain the original hard bot. */
   botDifficulty?: BotDifficulty;
   /** Private scheduling state: never projected to clients. */

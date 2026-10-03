@@ -13,6 +13,7 @@ import type {
   BotDifficulty,
   GameKind,
   WordLength,
+  PhraseDifficulty,
 } from '../game/types';
 import { BOT_PROFILES } from '../game/bot-difficulty';
 import { answersForLength } from './words';
@@ -31,6 +32,7 @@ export type BotServices = {
     previous: string,
     game?: GameKind,
     length?: WordLength,
+    phraseDifficulty?: PhraseDifficulty,
   ) => string;
 };
 const production: BotServices = {
@@ -40,7 +42,8 @@ const production: BotServices = {
     const profile = BOT_PROFILES[difficulty];
     return randomInt(profile.thinkMinMs, profile.thinkMaxMs + 1);
   },
-  nextAnswer: (previous, game, length) => pickPuzzle(game, previous, length),
+  nextAnswer: (previous, game, length, phraseDifficulty) =>
+    pickPuzzle(game, previous, length, phraseDifficulty),
 };
 
 /** Call only under the room's DB row lock. No timers or jobs survive a request. */
@@ -55,7 +58,13 @@ export function advanceBots(room: Room, now: number, services = production) {
       action,
       now,
       puzzleWords(room.game, room.wordLength),
-      () => services.nextAnswer(room.match.answer, room.game, room.wordLength),
+      () =>
+        services.nextAnswer(
+          room.match.answer,
+          room.game,
+          room.wordLength,
+          room.phraseDifficulty,
+        ),
       services.id,
     );
   const bot = room.players.find((player) => player.isBot);
