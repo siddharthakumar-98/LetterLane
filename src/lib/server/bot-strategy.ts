@@ -25,19 +25,17 @@ export function chooseBotGuess(
   );
   // An existing match may outlive a vocabulary update: keep making valid guesses.
   const candidates = consistent.length ? consistent : available;
+  const uniqueLetters = candidates.map((word) => [...new Set(word)]);
   const frequencies = new Map<string, number>();
-  for (const word of candidates) {
-    for (const letter of new Set(word)) {
+  for (const letters of uniqueLetters) {
+    for (const letter of letters) {
       frequencies.set(letter, (frequencies.get(letter) ?? 0) + 1);
     }
   }
-  const information = (word: string) =>
-    [...new Set(word)].reduce(
-      (sum, letter) => sum + (frequencies.get(letter) ?? 0),
-      0,
-    );
+  const information = (letters: string[]) =>
+    letters.reduce((sum, letter) => sum + (frequencies.get(letter) ?? 0), 0);
   const ranked = candidates
-    .map((word) => ({ word, score: information(word) }))
+    .map((word, index) => ({ word, score: information(uniqueLetters[index]) }))
     .sort((a, b) => b.score - a.score || a.word.localeCompare(b.word));
   // Variation among useful candidates keeps the bot from repeating one script.
   // Easier bots consider a wider range of words instead of favoring only

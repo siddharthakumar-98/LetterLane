@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -20,7 +20,7 @@ import { Results } from './results';
 import { RoundTimer } from './round-timer';
 import { initialTime, timeBonus } from '@/lib/game/round-clock';
 import { useRoom } from '@/lib/client/use-room';
-import type { PlayerView, RoomView } from '@/lib/game/types';
+import type { Attempt, PlayerView, RoomView } from '@/lib/game/types';
 import { nameSchema } from '@/lib/game/validation';
 import { WORD_LEVELS, wordLengthMessage } from '@/lib/game/word-length';
 import { PHRASE_LEVELS } from '@/lib/game/phrase-difficulty';
@@ -29,6 +29,7 @@ import { usePhraseValidation } from '@/lib/client/use-phrase-validation';
 import { PhraseInstructions } from './phrase-instructions';
 import { canPlayWithBot } from '@/lib/game/matchmaking';
 import { BotNotice, BotTag } from './bot-notice';
+const EMPTY_ATTEMPTS: Attempt[] = [];
 function PlayerBadge({
   player,
   self,
@@ -252,9 +253,12 @@ export function RoomGame({ code }: { code: string }) {
   const phrases = room?.game === 'phrases';
   const template = room?.match.phraseTemplate;
   const wordLength = room?.wordLength ?? 5;
-  const letterCount = template
-    ? phraseMetadata(template).letterCount
-    : wordLength;
+  const metadata = useMemo(
+    () => (template ? phraseMetadata(template) : undefined),
+    [template],
+  );
+  const letterCount = metadata?.letterCount ?? wordLength;
+  const matchId = room?.match.id;
   const homePath = phrases ? '/phrases' : '/';
   const lastAttempt = me?.attempts?.at(-1);
   const clockStopped = me?.solved || me?.count === 6;
@@ -301,7 +305,7 @@ export function RoomGame({ code }: { code: string }) {
   }, [phrases, phase, me?.count, room?.match.id]);
   const key = useCallback(
     async (value: string) => {
-      if (!canGuess || submitting.current || !room) return;
+      if (!canGuess || submitting.current || !matchId) return;
       if (value === 'Backspace') {
         setInput((s) => s.slice(0, -1));
         setError('');
@@ -321,12 +325,12 @@ export function RoomGame({ code }: { code: string }) {
         if (
           !pending.current ||
           pending.current.word !== input ||
-          pending.current.matchId !== room.match.id
+          pending.current.matchId !== matchId
         )
           pending.current = {
             word: input,
             requestId: crypto.randomUUID(),
-            matchId: room.match.id,
+            matchId,
           };
         try {
           if (await act({ type: 'guess', ...pending.current })) {
@@ -339,7 +343,7 @@ export function RoomGame({ code }: { code: string }) {
         }
       }
     },
-    [canGuess, room, input, act, setError, letterCount, phrases, wordLength],
+    [canGuess, matchId, input, act, setError, letterCount, phrases, wordLength],
   );
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -459,7 +463,7 @@ export function RoomGame({ code }: { code: string }) {
             <p>{error}</p>
             <Link href={homePath} className="button primary">
               Find a fresh start
-              <ArrowRightIcon />
+              <ArrowUpRight size={19} />
             </Link>
           </div>
         ) : !room ? (
@@ -537,7 +541,7 @@ export function RoomGame({ code }: { code: string }) {
                   className={`board-wrap ${phase === 'countdown' ? 'is-counting-down' : ''}`}
                 >
                   <Board
-                    attempts={me?.attempts ?? []}
+                    attempts={me?.attempts ?? EMPTY_ATTEMPTS}
                     input={input}
                     template={template}
                     wordLength={wordLength}
@@ -579,14 +583,14 @@ export function RoomGame({ code }: { code: string }) {
                     ) : (
                       <span>
                         {phrases
-                          ? `${phraseMetadata(template!).wordCount} words · ${letterCount} letters. Spaces and punctuation are automatic.`
+                          ? `${metadata!.wordCount} words · ${letterCount} letters. Spaces and punctuation are automatic.`
                           : `Trust your hunch. Make it ${WORD_LEVELS[wordLength].name} letters.`}
                       </span>
                     )}
                   </div>
                   <Keyboard
-                    attempts={me?.attempts ?? []}
-                    onKey={(value) => void key(value)}
+                    attempts={me?.attempts ?? EMPTY_ATTEMPTS}
+                    onKey={key}
                     disabled={!canGuess}
                   />
                 </div>
@@ -665,10 +669,9 @@ export function RoomGame({ code }: { code: string }) {
           )}
         <div className="sr-only" aria-live="polite" aria-atomic="true">
           {announcement}{' '}
-          {me?.attempts
-            ?.at(-1)
-            ?.word.split('')
-            .map((l, i) => `${l} ${me.attempts!.at(-1)!.marks[i]}`)
+          {lastAttempt?.word
+            .split('')
+            .map((l, i) => `${l} ${lastAttempt.marks[i]}`)
             .join(', ')}
         </div>
       </main>
@@ -679,7 +682,4 @@ export function RoomGame({ code }: { code: string }) {
       />
     </div>
   );
-}
-function ArrowRightIcon() {
-  return <ArrowUpRight size={19} />;
 }

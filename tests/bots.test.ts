@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import {
-  advanceBots,
-  type BotServices,
-  BOT_THINK_MIN_MS,
-} from '../src/lib/server/bots';
+import { advanceBots, type BotServices } from '../src/lib/server/bots';
+import { BOT_PROFILES } from '../src/lib/game/bot-difficulty';
 import { chooseBotGuess } from '../src/lib/server/bot-strategy';
 import { ALLOWED_WORDS, ANSWERS } from '../src/lib/server/words';
 import { applyAction, projectRoom } from '../src/lib/game/rules';
@@ -15,7 +12,7 @@ import { fixture, p1, p2, player } from './fixtures';
 const services: BotServices = {
   id: randomUUID,
   randomIndex: () => 0,
-  thinkMs: () => BOT_THINK_MIN_MS,
+  thinkMs: () => BOT_PROFILES.hard.thinkMinMs,
   nextAnswer: () => 'BLOOM',
 };
 function waiting() {

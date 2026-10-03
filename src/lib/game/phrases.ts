@@ -137,26 +137,34 @@ export function scorePhrase(answer: string, guess: string): Mark[] {
     Array<number>(word.length).fill(index),
   );
   const marks: Mark[] = Array<Mark>(letters.length).fill('absent');
-  const used = Array<boolean>(letters.length).fill(false);
+  const remaining = new Map<string, number>();
+  const remainingByWord = words.map(() => new Map<string, number>());
   for (let i = 0; i < letters.length; i++) {
     if (letters[i] === entered[i]) {
       marks[i] = 'correct';
-      used[i] = true;
+    } else {
+      const local = remainingByWord[wordAt[i]];
+      local.set(letters[i], (local.get(letters[i]) ?? 0) + 1);
+      remaining.set(letters[i], (remaining.get(letters[i]) ?? 0) + 1);
     }
   }
-  for (const sameWord of [true, false]) {
-    for (let i = 0; i < entered.length; i++) {
-      if (marks[i] !== 'absent') continue;
-      const match = [...letters].findIndex(
-        (letter, j) =>
-          !used[j] &&
-          letter === entered[i] &&
-          (wordAt[i] === wordAt[j]) === sameWord,
-      );
-      if (match !== -1) {
-        used[match] = true;
-        marks[i] = sameWord ? 'present' : 'elsewhere';
-      }
+  // Reserve every same-word match before spending cross-word occurrences.
+  for (let i = 0; i < entered.length; i++) {
+    if (marks[i] === 'correct') continue;
+    const local = remainingByWord[wordAt[i]];
+    const count = local.get(entered[i]) ?? 0;
+    if (count > 0) {
+      marks[i] = 'present';
+      local.set(entered[i], count - 1);
+      remaining.set(entered[i], remaining.get(entered[i])! - 1);
+    }
+  }
+  for (let i = 0; i < entered.length; i++) {
+    if (marks[i] !== 'absent') continue;
+    const count = remaining.get(entered[i]) ?? 0;
+    if (count > 0) {
+      marks[i] = 'elsewhere';
+      remaining.set(entered[i], count - 1);
     }
   }
   return marks;

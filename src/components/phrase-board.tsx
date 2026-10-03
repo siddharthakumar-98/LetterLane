@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { memo, useMemo, type CSSProperties } from 'react';
 import type { Attempt, Mark } from '@/lib/game/types';
 import { formatPhraseGuess, phraseWords } from '@/lib/game/phrases';
 
@@ -8,7 +8,7 @@ const markLabels: Record<Mark, string> = {
   elsewhere: 'blue, in another word',
   absent: 'grey, no remaining match',
 };
-export function PhraseRow({
+export const PhraseRow = memo(function PhraseRow({
   template,
   letters,
   marks,
@@ -17,7 +17,7 @@ export function PhraseRow({
   letters: string;
   marks?: Mark[];
 }) {
-  const words = phraseWords(template);
+  const words = useMemo(() => phraseWords(template), [template]);
   return (
     <div
       className="phrase-words"
@@ -66,7 +66,7 @@ export function PhraseRow({
       })}
     </div>
   );
-}
+});
 export function PhraseBoard({
   template,
   attempts,

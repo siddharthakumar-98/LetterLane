@@ -6,17 +6,17 @@ import type { GameKind, WordLength, PhraseDifficulty } from '@/lib/game/types';
 import { WORD_LEVELS } from '@/lib/game/word-length';
 import { PHRASE_LEVELS } from '@/lib/game/phrase-difficulty';
 import { PhraseInstructions } from './phrase-instructions';
-import { useRef } from 'react';
+import { memo, useRef } from 'react';
 import { ArrowUpRight, HelpCircle, X } from 'lucide-react';
-export function Logo() {
+export const Logo = memo(function Logo() {
   return (
     <Link href="/" aria-label="LetterLane home" className="logo">
       <Image src={brandLogo} alt="" className="logo-mark" sizes="56px" />
       LetterLane<span className="logo-period">.</span>
     </Link>
   );
-}
-export function HowToPlay({
+});
+export const HowToPlay = memo(function HowToPlay({
   game = 'words',
   wordLength = 5,
   phraseDifficulty = 'normal',
@@ -132,7 +132,7 @@ export function HowToPlay({
       </dialog>
     </>
   );
-}
+});
 export function Header({
   children,
   game = 'words',
@@ -178,7 +178,7 @@ export function Header({
     </header>
   );
 }
-export function Footer({
+export const Footer = memo(function Footer({
   game = 'words',
   wordLength = 5,
   phraseDifficulty = 'normal',
@@ -199,4 +199,4 @@ export function Footer({
       </span>
     </footer>
   );
-}
+});

@@ -1,8 +1,9 @@
 'use client';
+import { memo, useMemo } from 'react';
 import { Delete, CornerDownLeft } from 'lucide-react';
 import { keyboardMarks } from '@/lib/game/scoring';
 import type { Attempt } from '@/lib/game/types';
-export function Keyboard({
+export const Keyboard = memo(function Keyboard({
   attempts,
   onKey,
   disabled,
@@ -11,7 +12,7 @@ export function Keyboard({
   onKey: (key: string) => void;
   disabled: boolean;
 }) {
-  const marks = keyboardMarks(attempts);
+  const marks = useMemo(() => keyboardMarks(attempts), [attempts]);
   return (
     <div className="keyboard" role="group" aria-label="Letter keyboard">
       {['QWERTYUIOP', 'ASDFGHJKL', '↵ZXCVBNM⌫'].map((row, i) => (
@@ -50,4 +51,4 @@ export function Keyboard({
       ))}
     </div>
   );
-}
+});
