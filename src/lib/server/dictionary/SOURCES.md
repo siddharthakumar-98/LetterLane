@@ -35,3 +35,33 @@ contains uncommon words and inflected forms suitable as guesses.
 For future updates, use the same union operation with the existing list, retain
 local additions, record the new source and checksum, and run the dictionary and
 multiplayer tests. Serving the application never contacts NYT or downloads words.
+
+## Six- and seven-letter Words — September 29, 2026
+
+Longer Words games reuse `../phrases/allowed-words.json`, the frozen SCOWL / English
+Speller Database **rel-2026.02.25**, commit
+`7e99edab8e32f9f9ea2b15f249ca8d4d67237410`. This is the raw ordinary-word asset,
+not `PHRASE_WORDS`: phrase-specific contractions and answer exceptions are not
+merged. Select exactly `[A-Z]{6}` or `[A-Z]{7}` into separate server-only sets:
+**5,298** and **6,737** accepted guesses respectively. No new dictionary download,
+dependency, runtime request, or client-side vocabulary is needed.
+
+See [the existing SCOWL provenance and rebuild policy](../phrases/SOURCES.md)
+and [the complete upstream license](../phrases/DICTIONARY-LICENSE.txt). It uses
+SCOWL size 35, ordinary American/British usage, and excludes proper names,
+abbreviations, uncommon/archaic/nonstandard categories and malformed forms.
+The original five-letter vocabulary remains unchanged for compatibility.
+
+`long-answers.json` is LetterLane's curated selection of familiar words from
+those sets: **257** six-letter and **295** seven-letter answers. Candidates were
+checked against the frozen vocabulary, filtered to the exact letter count,
+deduplicated and alphabetically sorted. No rejected candidate is an exception
+to validation. SHA-256:
+`9936913f7191c142942298883c4394c742e5fea93f7e2b8aacc75d7993bc92e2`.
+Tests enforce the answer/vocabulary subset invariant and valid A–Z lengths.
+Answer selection remains random per room, excluding the previous answer;
+rematches retain the room's length. Bots use only the matching answer pool.
+
+This is spelling-list validation, not a semantic judgement of every possible
+word. The conservative list may omit legitimate uncommon words; additions
+should follow the documented SCOWL policy rather than accept arbitrary input.

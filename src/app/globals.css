@@ -429,7 +429,7 @@ nav {
 }
 .tile-row {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--word-length, 5), minmax(0, 1fr));
   gap: 8px;
 }
 .tile {
@@ -1171,7 +1171,7 @@ nav {
   display: contents;
 }
 .masked-tile {
-  width: 20px;
+  width: min(20px, calc(100px / var(--masked-columns, 5)));
   height: 24px;
   border: 1px solid var(--line);
   border-radius: 3px;
@@ -1269,6 +1269,7 @@ nav {
 .answer-reveal > div {
   display: flex;
   gap: 6px;
+  max-width: 100%;
 }
 .answer-reveal .tile {
   width: 42px;
@@ -1860,7 +1861,7 @@ nav {
   }
   .masked-row > div {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(var(--masked-columns, 5), minmax(0, 1fr));
     gap: 2px;
     width: 100%;
   }
@@ -2326,6 +2327,11 @@ input::placeholder {
 .difficulty-options strong {
   display: block;
   font-size: 14px;
+}
+.difficulty-options small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
 }
 .difficulty-picker:disabled {
   opacity: 0.57;

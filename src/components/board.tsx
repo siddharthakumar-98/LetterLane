@@ -1,5 +1,5 @@
 import { PhraseBoard } from './phrase-board';
-import type { Attempt, Mark } from '@/lib/game/types';
+import type { Attempt, Mark, WordLength } from '@/lib/game/types';
 import { phraseWords } from '@/lib/game/phrases';
 export function Board({
   attempts,
@@ -7,12 +7,14 @@ export function Board({
   compact = false,
   label = 'Your guesses',
   template,
+  wordLength = 5,
 }: {
   attempts: Attempt[];
   input?: string;
   compact?: boolean;
   label?: string;
   template?: string;
+  wordLength?: WordLength;
 }) {
   if (template)
     return (
@@ -27,6 +29,7 @@ export function Board({
   return (
     <div
       className={`board ${compact ? 'compact' : ''}`}
+      style={{ '--word-length': wordLength } as React.CSSProperties}
       role="group"
       aria-label={label}
     >
@@ -47,7 +50,7 @@ export function Board({
                 : `Guess ${row + 1}, ${letters || 'empty'}`
             }
           >
-            {Array.from({ length: 5 }, (_, col) => (
+            {Array.from({ length: wordLength }, (_, col) => (
               <div
                 aria-hidden="true"
                 style={
@@ -69,12 +72,16 @@ export function MaskedBoard({
   count,
   guessMarks = [],
   template,
+  wordLength = 5,
 }: {
   count: number;
   guessMarks?: Mark[][];
   template?: string;
+  wordLength?: WordLength;
 }) {
-  const words = template ? phraseWords(template) : [{ offset: 0, length: 5 }];
+  const words = template
+    ? phraseWords(template)
+    : [{ offset: 0, length: wordLength }];
   const colors: Record<Mark, string> = {
     correct: 'green',
     present: template ? 'orange' : 'yellow',

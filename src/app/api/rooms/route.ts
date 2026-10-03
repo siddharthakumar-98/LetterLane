@@ -15,6 +15,7 @@ export async function POST(request: Request) {
         input.mode,
         input.botDifficulty,
         input.game,
+        input.wordLength,
       ),
       201,
     );

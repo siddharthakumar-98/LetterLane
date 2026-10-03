@@ -1,5 +1,6 @@
 export type Mark = 'correct' | 'present' | 'elsewhere' | 'absent';
 export type GameKind = 'words' | 'phrases';
+export type WordLength = 5 | 6 | 7;
 export type Mode = 'duel' | 'coop';
 export type BotDifficulty = 'easy' | 'medium' | 'hard';
 export type Attempt = {
@@ -21,6 +22,8 @@ export type Player = {
 export type Room = {
   /** Older rooms remain Words. */
   game?: GameKind;
+  /** Words rooms created before length selection use five letters. */
+  wordLength?: WordLength;
   /** Missing in older rooms, which retain the original hard bot. */
   botDifficulty?: BotDifficulty;
   /** Private scheduling state: never projected to clients. */

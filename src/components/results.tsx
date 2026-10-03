@@ -121,6 +121,7 @@ export function Results({
             <Board
               compact
               template={room.match.phraseTemplate}
+              wordLength={room.wordLength}
               attempts={p.attempts ?? []}
               label={`${p.name}'s revealed guesses`}
             />
