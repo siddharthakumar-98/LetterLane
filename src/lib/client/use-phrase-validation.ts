@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { completedPhraseWords, invalidWordMessage } from '../game/phrases';
 import { api } from './api';
 
@@ -11,8 +11,10 @@ export function usePhraseValidation(
   const [cache, setCache] = useState<ReadonlyMap<string, boolean>>(
     () => new Map(),
   );
-  const completed =
-    enabled && template ? completedPhraseWords(template, letters) : [];
+  const completed = useMemo(
+    () => (enabled && template ? completedPhraseWords(template, letters) : []),
+    [enabled, template, letters],
+  );
   // Adding letters to an incomplete word does not restart completed-word checks.
   const signature = JSON.stringify([
     ...new Set(completed.map(({ word }) => word)),

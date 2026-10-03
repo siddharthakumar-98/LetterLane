@@ -22,8 +22,6 @@ import { phraseTemplate } from '../game/phrases';
 import { choosePhraseBotGuess } from './phrase-bot';
 import { chooseBotGuess } from './bot-strategy';
 
-export const BOT_THINK_MIN_MS = BOT_PROFILES.hard.thinkMinMs;
-export const BOT_THINK_MAX_MS = BOT_PROFILES.hard.thinkMaxMs;
 export type BotServices = {
   id: () => string;
   randomIndex: (length: number) => number;

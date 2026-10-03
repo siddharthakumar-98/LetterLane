@@ -1,7 +1,8 @@
+import { memo } from 'react';
 import { PhraseBoard } from './phrase-board';
 import type { Attempt, Mark, WordLength } from '@/lib/game/types';
 import { phraseWords } from '@/lib/game/phrases';
-export function Board({
+export const Board = memo(function Board({
   attempts,
   input = '',
   compact = false,
@@ -67,8 +68,8 @@ export function Board({
       })}
     </div>
   );
-}
-export function MaskedBoard({
+});
+export const MaskedBoard = memo(function MaskedBoard({
   count,
   guessMarks = [],
   template,
@@ -129,4 +130,4 @@ export function MaskedBoard({
       ))}
     </div>
   );
-}
+});

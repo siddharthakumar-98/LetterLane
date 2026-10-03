@@ -1,5 +1,6 @@
 'use client';
 import { PhraseRow } from './phrase-board';
+import { DifficultyOptions } from './difficulty-options';
 import { PhraseInstructions } from './phrase-instructions';
 import {
   phraseTemplate,
@@ -35,6 +36,26 @@ import {
   PHRASE_DIFFICULTIES,
   PHRASE_LEVELS,
 } from '@/lib/game/phrase-difficulty';
+const wordOptions = WORD_LENGTHS.map((value) => ({
+  value,
+  label: WORD_LEVELS[value].label,
+  detail: `${value} letters`,
+}));
+const phraseOptions = PHRASE_DIFFICULTIES.map((value) => ({
+  value,
+  label: PHRASE_LEVELS[value].label,
+  detail: `Up to ${PHRASE_LEVELS[value].maxWords} words`,
+}));
+const botOptions = (['easy', 'medium', 'hard'] as const).map((value) => ({
+  value,
+  label: BOT_PROFILES[value].label,
+}));
+const phraseExample = {
+  template: phraseTemplate('CAT BAG TIME'),
+  letters: playableLetters('TAR CAB TIME'),
+  marks: scorePhrase('CAT BAG TIME', 'TAR CAB TIME'),
+};
+
 export default function Home({ game = 'words' }: { game?: GameKind }) {
   const router = useRouter();
   const [name, setName] = useState('');
@@ -108,11 +129,7 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
                 <Sparkles size={20} />
               </div>
               <div className="phrase-preview">
-                <PhraseRow
-                  template={phraseTemplate('CAT BAG TIME')}
-                  letters={playableLetters('TAR CAB TIME')}
-                  marks={scorePhrase('CAT BAG TIME', 'TAR CAB TIME')}
-                />
+                <PhraseRow {...phraseExample} />
               </div>
               <details className="phrase-help">
                 <summary>How to play Phrases</summary>
@@ -268,26 +285,12 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
             {game === 'words' && (
               <fieldset className="difficulty-picker" disabled={!!busy}>
                 <legend>Word difficulty</legend>
-                <div className="difficulty-options">
-                  {WORD_LENGTHS.map((length) => (
-                    <label
-                      key={length}
-                      className={wordLength === length ? 'selected' : ''}
-                    >
-                      <input
-                        type="radio"
-                        name="word-length"
-                        value={length}
-                        checked={wordLength === length}
-                        onChange={() => setWordLength(length)}
-                      />
-                      <span>
-                        <strong>{WORD_LEVELS[length].label}</strong>
-                        <small>{length} letters</small>
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                <DifficultyOptions
+                  name="word-length"
+                  value={wordLength}
+                  onChange={setWordLength}
+                  options={wordOptions}
+                />
                 <p>Both players use this word length for every round.</p>
               </fieldset>
             )}
@@ -297,30 +300,12 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
                 disabled={!!busy}
               >
                 <legend>Phrase difficulty</legend>
-                <div className="difficulty-options">
-                  {PHRASE_DIFFICULTIES.map((difficulty) => (
-                    <label
-                      key={difficulty}
-                      className={
-                        phraseDifficulty === difficulty ? 'selected' : ''
-                      }
-                    >
-                      <input
-                        type="radio"
-                        name="phrase-difficulty"
-                        value={difficulty}
-                        checked={phraseDifficulty === difficulty}
-                        onChange={() => setPhraseDifficulty(difficulty)}
-                      />
-                      <span>
-                        <strong>{PHRASE_LEVELS[difficulty].label}</strong>
-                        <small>
-                          Up to {PHRASE_LEVELS[difficulty].maxWords} words
-                        </small>
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                <DifficultyOptions
+                  name="phrase-difficulty"
+                  value={phraseDifficulty}
+                  onChange={setPhraseDifficulty}
+                  options={phraseOptions}
+                />
                 <p>Both players use this phrase limit for every round.</p>
               </fieldset>
             )}
@@ -333,25 +318,12 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
               <p id="difficulty-help">
                 If no friend joins, choose who fills the open seat.
               </p>
-              <div className="difficulty-options">
-                {(['easy', 'medium', 'hard'] as const).map((difficulty) => (
-                  <label
-                    key={difficulty}
-                    className={botDifficulty === difficulty ? 'selected' : ''}
-                  >
-                    <input
-                      type="radio"
-                      name="bot-difficulty"
-                      value={difficulty}
-                      checked={botDifficulty === difficulty}
-                      onChange={() => setBotDifficulty(difficulty)}
-                    />
-                    <span>
-                      <strong>{BOT_PROFILES[difficulty].label}</strong>
-                    </span>
-                  </label>
-                ))}
-              </div>
+              <DifficultyOptions
+                name="bot-difficulty"
+                value={botDifficulty}
+                onChange={setBotDifficulty}
+                options={botOptions}
+              />
               <p>{BOT_PROFILES[botDifficulty].description}</p>
             </fieldset>
             <button

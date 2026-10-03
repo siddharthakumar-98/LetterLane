@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, identity } from './api';
 import type { Action, RoomView } from '../game/types';
+import { reconcileRoom } from './room-snapshot';
 export function useRoom(code: string) {
   const [room, setRoom] = useState<RoomView | null>(null);
   const [error, setError] = useState('');
@@ -11,12 +12,15 @@ export function useRoom(code: string) {
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(0);
   const offset = useRef(0);
+  const latest = useRef<RoomView | null>(null);
   const inFlight = useRef(false);
   const accept = useCallback((next: RoomView) => {
-    offset.current = next.serverTime - Date.now();
-    setRoom((previous) =>
-      !previous || next.revision >= previous.revision ? next : previous,
-    );
+    const accepted = reconcileRoom(latest.current, next);
+    if (accepted !== latest.current) {
+      latest.current = accepted;
+      offset.current = next.serverTime - Date.now();
+      setRoom(accepted);
+    }
     setConnected(true);
     setFatal(null);
     setLoading(false);

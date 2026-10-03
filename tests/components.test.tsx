@@ -2,7 +2,6 @@ import { BotNotice, BotTag } from '../src/components/bot-notice';
 import { projectRoom } from '../src/lib/game/rules';
 import { fixture, p1 } from './fixtures';
 // @vitest-environment jsdom
-import React from 'react';
 import { afterEach, it, expect, vi } from 'vitest';
 import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import { Board, MaskedBoard } from '../src/components/board';

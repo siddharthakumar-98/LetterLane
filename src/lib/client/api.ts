@@ -1,5 +1,5 @@
 'use client';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -15,6 +15,7 @@ async function initialize() {
   const config = await response.json();
   if (!response.ok) throw new ApiError(config.error, response.status);
   if (config.backend === 'supabase') {
+    const { createClient } = await import('@supabase/supabase-js');
     client ??= createClient(config.url, config.key);
     const {
       data: { session },

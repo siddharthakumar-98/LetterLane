@@ -1,6 +1,6 @@
 import 'server-only';
 import { randomInt, randomUUID } from 'node:crypto';
-import { transaction, databaseTime, type DB } from './db';
+import { transaction, databaseTime } from './db';
 import { puzzleWords, pickPuzzle } from './puzzles';
 import { applyAction, projectRoom } from '../game/rules';
 import {
@@ -15,69 +15,8 @@ import {
 } from '../game/types';
 import { advanceBots } from './bots';
 import { rateLimit } from './rate-limit';
+import { persistRoom } from './room-persistence';
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-async function persist(db: DB, room: Room) {
-  room.revision++;
-  await db.query('update public.rooms set expires_at=$2 where id=$1', [
-    room.id,
-    new Date(room.expiresAt).toISOString(),
-  ]);
-  for (const [seat, p] of room.players.entries()) {
-    await db.query(
-      'insert into public.players(id,display_name,is_bot) values($1,$2,$3) on conflict(id) do update set display_name=excluded.display_name,is_bot=excluded.is_bot',
-      [p.id, p.name, p.isBot ?? false],
-    );
-    await db.query(
-      `insert into public.room_participants(room_id,player_id,seat,ready,last_seen) values($1,$2,$3,$4,$5)
-      on conflict(room_id,player_id) do update set ready=excluded.ready,last_seen=excluded.last_seen`,
-      [room.id, p.id, seat, p.ready, new Date(p.lastSeen).toISOString()],
-    );
-  }
-  const m = room.match;
-  await db.query(
-    `insert into public.matches(id,room_id,round,phase,starts_at,ended_at,winner_id,outcome) values($1,$2,$3,$4,$5,$6,$7,$8)
-    on conflict(id) do update set phase=excluded.phase,starts_at=excluded.starts_at,ended_at=excluded.ended_at,winner_id=excluded.winner_id,outcome=excluded.outcome`,
-    [
-      m.id,
-      room.id,
-      m.round,
-      m.phase,
-      m.startsAt === null ? null : new Date(m.startsAt).toISOString(),
-      m.endedAt === null ? null : new Date(m.endedAt).toISOString(),
-      m.winnerId,
-      m.outcome,
-    ],
-  );
-  for (const p of room.players) {
-    for (const [i, a] of p.attempts.entries())
-      await db.query(
-        `insert into public.guess_attempts(match_id,player_id,attempt,word,marks,elapsed_ms,request_id,game) values($1,$2,$3,$4,$5::text::jsonb,$6,$7,$8) on conflict do nothing`,
-        [
-          m.id,
-          p.id,
-          i + 1,
-          a.word,
-          JSON.stringify(a.marks),
-          a.elapsedMs,
-          a.requestId,
-          room.game ?? 'words',
-        ],
-      );
-    await db.query(
-      'insert into public.rematch_readiness(match_id,player_id,ready) values($1,$2,$3) on conflict(match_id,player_id) do update set ready=excluded.ready',
-      [m.id, p.id, p.rematch],
-    );
-  }
-  await db.query(
-    // Bind pre-encoded JSON as text: Postgres.js otherwise JSON-encodes it again.
-    'insert into private.room_states(room_id,state) values($1,$2::text::jsonb) on conflict(room_id) do update set state=excluded.state',
-    [room.id, JSON.stringify(room)],
-  );
-  await db.query(
-    'insert into public.room_events(room_id,revision) values($1,$2) on conflict(room_id) do update set revision=excluded.revision',
-    [room.id, room.revision],
-  );
-}
 export async function createRoom(
   playerId: string,
   name: string,
@@ -138,7 +77,7 @@ export async function createRoom(
         outcome: null,
       },
     };
-    await persist(db, room);
+    await persistRoom(db, room);
     return projectRoom(room, playerId, now);
   });
 }
@@ -196,7 +135,13 @@ export async function roomOperation(
       }
     }
     advanceBots(room, now);
-    if (JSON.stringify(room) !== before) await persist(db, room);
+    if (JSON.stringify(room) !== before)
+      await persistRoom(
+        db,
+        room,
+        // Legacy string snapshots receive a full projection repair.
+        typeof row.state === 'string' ? undefined : JSON.parse(before),
+      );
     // Commit due bot actions/deadlines even if the human sent an invalid action.
     return rejected
       ? { error: rejected }
