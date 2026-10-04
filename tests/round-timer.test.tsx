@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react';
 import { RoomGame } from '../src/components/room-game';
 import { useRoom } from '../src/lib/client/use-room';
 import { projectRoom } from '../src/lib/game/rules';
@@ -42,6 +48,22 @@ it.each([false, true])(
       });
     show(1000);
     const { rerender } = render(<RoomGame code={room.code} />);
+    const statusBar = screen.getByRole('group', {
+      name: 'Players and round timers',
+    });
+    expect(within(statusBar).getAllByRole('timer')).toHaveLength(2);
+    const selfSide = screen
+      .getByRole('timer', { name: 'Your time remaining' })
+      .closest('.match-player')!;
+    const otherSide = screen
+      .getByRole('timer', { name: opponentLabel })
+      .closest('.match-player')!;
+    expect(selfSide.textContent).toContain('Ada');
+    expect(otherSide.textContent).toContain(isBot ? 'Pip' : 'Max');
+    expect(document.querySelector('.arena-timers')).toBeNull();
+    expect(
+      document.querySelector('.opponent-description, .arena-legend'),
+    ).toBeNull();
     expect(
       screen.getByRole('timer', { name: 'Your time remaining' }).textContent,
     ).toBe('1:30');

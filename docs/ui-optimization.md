@@ -23,3 +23,13 @@ The home grid has named `intro`, `setup` and `support` areas. A future optional 
 - Manual browser checks cover desktop/laptop and narrow mobile layouts, Words seven-letter co-op and Easy Phrases duel, room creation, readiness, bot selection, physical/touch input, validation, help, results and rematch. Browser warning/error diagnostics were empty.
 
 Browser testing uses Chromium and the local PGlite backend. It does not establish Safari/Firefox or live hosted Supabase coverage.
+
+## In-game follow-up
+
+- Replaced the separate timer panel with a compact, sticky player bar. Each half contains its player's identity/status and clock; timer bonuses, low-time announcements, pause/stop behavior and accessible labels are unchanged.
+- Aligned the bar and two equal-width lane cards within a 1000px container. Desktop and tablet keep the lanes side by side; phones stack the lanes while retaining both clocks together above play.
+- Removed opponent helper paragraphs, the redundant color legend and idle decoration. Guess counts, six rows of private feedback, disconnection notices and meaningful completion/timeout messages remain. Full instructions remain available through the header's help button.
+- Fixed rematch content alignment by overriding the generic primary-button icon's automatic left margin inside result actions. Both the button and its icon/text group are centered on mobile.
+- Consolidated superseded player-bar, timer-panel and arena breakpoint rules instead of layering the new layout over them.
+- Extended the existing timer tests to verify that human and bot clocks belong to the correct player. The responsive matrix now checks per-player timers, a maximum 90px desktop/tablet bar height, aligned lane columns, mobile stacking, and button/content centering in Words and Phrases results. Screenshot capture finishes tile animations before saving review images.
+- Follow-up validation: `pnpm check` passed (252 tests, type checking, zero-warning linting and production build); the full browser suite passed 42 tests in 6.4 minutes, with the same 12 intentional duplicate matrix skips. Formatting and diff checks passed. Manual production-server checks at 1280px, 768px and 390px verified bot play, physical keyboard input, time bonuses, sticky timers, completion, centered results actions and rematch; browser warning/error diagnostics were empty.
