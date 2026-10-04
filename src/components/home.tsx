@@ -13,10 +13,8 @@ import {
   ArrowRight,
   ArrowUpRight,
   Check,
-  Copy,
   HeartHandshake,
   LockKeyhole,
-  Sparkles,
   Swords,
 } from 'lucide-react';
 import { Header, Footer } from './chrome';
@@ -117,264 +115,258 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
       />
       <main className="home-main">
         <section className="start-panel" aria-labelledby="home-title">
-          <h1 id="home-title">
-            Two minds.
-            <br />
-            <span>{game === 'phrases' ? 'One phrase.' : 'One word.'}</span>
-          </h1>
-          {game === 'phrases' ? (
-            <section className="home-preview" aria-label="An example phrase">
-              <div className="preview-topline">
-                <span className="eyebrow">LETTERLANE PHRASES</span>
-                <Sparkles size={20} />
-              </div>
-              <div className="phrase-preview">
-                <PhraseRow {...phraseExample} />
-              </div>
-              <details className="phrase-help">
-                <summary>How to play Phrases</summary>
-                <PhraseInstructions difficulty={phraseDifficulty} />
-              </details>
-            </section>
-          ) : (
-            <section className="home-preview" aria-label="An example round">
-              <div className="preview-topline">
-                <span className="eyebrow">A GOOD KIND OF COMPETITION</span>
-                <Sparkles size={20} />
-              </div>
-              <div className="preview-game">
-                <div className="preview-player">
-                  <div className="avatar sky">Y</div>
-                  <div>
-                    <strong>You</strong>
-                    <span>A hunch, then a breakthrough.</span>
+          <div className="home-intro">
+            <h1 id="home-title">
+              Two minds.
+              <br />
+              <span>{game === 'phrases' ? 'One phrase.' : 'One word.'}</span>
+            </h1>
+            <p className="home-description">
+              {game === 'phrases'
+                ? 'Find a familiar saying with a friend or a bot.'
+                : 'Find the hidden word with a friend or a bot.'}
+            </p>
+            <p className="home-facts">
+              <span>
+                {game === 'phrases'
+                  ? `Up to ${PHRASE_LEVELS[phraseDifficulty].maxWords} words`
+                  : '5–7 letters'}
+              </span>
+              <span>6 guesses</span>
+              <span>2 players</span>
+            </p>
+            {game === 'phrases' ? (
+              <section className="home-preview" aria-label="An example phrase">
+                <p className="preview-label">Example phrase feedback</p>
+                <div className="phrase-preview">
+                  <PhraseRow {...phraseExample} />
+                </div>
+                <details className="phrase-help">
+                  <summary>How to play Phrases</summary>
+                  <PhraseInstructions difficulty={phraseDifficulty} />
+                </details>
+              </section>
+            ) : (
+              <section className="home-preview" aria-label="An example round">
+                <p className="preview-label">Example guesses</p>
+                <div className="preview-game">
+                  <div
+                    className="preview-tiles"
+                    aria-label="Example: guesses SLATE, CHIME, CHARM"
+                  >
+                    {[
+                      {
+                        word: 'SLATE',
+                        marks: [
+                          'absent',
+                          'absent',
+                          'correct',
+                          'absent',
+                          'absent',
+                        ],
+                      },
+                      {
+                        word: 'CHIME',
+                        marks: [
+                          'correct',
+                          'correct',
+                          'absent',
+                          'present',
+                          'absent',
+                        ],
+                      },
+                      {
+                        word: 'CHARM',
+                        marks: [
+                          'correct',
+                          'correct',
+                          'correct',
+                          'correct',
+                          'correct',
+                        ],
+                      },
+                    ].map((row) => (
+                      <div className="tile-row" key={row.word}>
+                        {[...row.word].map((letter, j) => (
+                          <span className={`tile ${row.marks[j]}`} key={j}>
+                            {letter}
+                          </span>
+                        ))}
+                      </div>
+                    ))}
                   </div>
-                  <span className="player-tag">YOUR LANE</span>
                 </div>
-                <div
-                  className="preview-tiles"
-                  aria-label="Example: guesses SLATE, CHIME, CHARM"
-                >
-                  {[
-                    {
-                      word: 'SLATE',
-                      marks: [
-                        'absent',
-                        'absent',
-                        'correct',
-                        'absent',
-                        'absent',
-                      ],
-                    },
-                    {
-                      word: 'CHIME',
-                      marks: [
-                        'correct',
-                        'correct',
-                        'absent',
-                        'present',
-                        'absent',
-                      ],
-                    },
-                    {
-                      word: 'CHARM',
-                      marks: [
-                        'correct',
-                        'correct',
-                        'correct',
-                        'correct',
-                        'correct',
-                      ],
-                    },
-                  ].map((row, i) => (
-                    <div className="tile-row" key={row.word}>
-                      {[...row.word].map((letter, j) => (
-                        <span
-                          className={`tile ${row.marks[j]} ${i === 2 ? 'preview-win' : ''}`}
-                          key={j}
-                        >
-                          {letter}
-                        </span>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-                <div className="preview-result">
-                  <span className="win-spark">✦</span>
+                <div className="preview-legend">
                   <span>
-                    That <em>“I got it!”</em> feeling.
+                    <i className="correct" />
+                    Right spot
                   </span>
-                  <span>3 / 6</span>
+                  <span>
+                    <i className="present" />
+                    Wrong spot
+                  </span>
+                  <span>
+                    <i className="absent" />
+                    Not here
+                  </span>
                 </div>
-              </div>
-              <div className="three-facts">
-                <div>
-                  <strong>5–7</strong>
-                  <span>letters to find</span>
-                </div>
-                <div>
-                  <strong>06</strong>
-                  <span>chances each</span>
-                </div>
-                <div>
-                  <Copy size={24} />
-                  <span>one link to play</span>
-                </div>
-              </div>
-            </section>
-          )}
-          <p className="home-description">
-            A friendly rivalry. A shared little victory.
-            <br />
-            {game === 'phrases'
-              ? 'Familiar sayings. A whole new way to play.'
-              : 'Your next word obsession starts here.'}
-          </p>
-          <form
-            className="start-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void start(false);
-            }}
-          >
-            <label className="field-label" htmlFor="display-name">
-              What should we call you?
-            </label>
-            <input
-              id="display-name"
-              placeholder="Your display name"
-              autoComplete="nickname"
-              maxLength={20}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={!!busy}
-            />
-            <fieldset className="mode-picker">
-              <legend>Pick your kind of wordplay</legend>
-              <label className={mode === 'duel' ? 'selected' : ''}>
-                <input
-                  type="radio"
-                  name="mode"
-                  value="duel"
-                  checked={mode === 'duel'}
-                  onChange={() => setMode('duel')}
-                />
-                <Swords size={21} />
-                <span>
-                  <strong>Head to head</strong>
-                  <small>Race to the answer</small>
-                </span>
-                {mode === 'duel' && <Check className="mode-check" size={16} />}
-              </label>
-              <label className={mode === 'coop' ? 'selected' : ''}>
-                <input
-                  type="radio"
-                  name="mode"
-                  value="coop"
-                  checked={mode === 'coop'}
-                  onChange={() => setMode('coop')}
-                />
-                <HeartHandshake size={21} />
-                <span>
-                  <strong>Better together</strong>
-                  <small>Solve as a team</small>
-                </span>
-                {mode === 'coop' && <Check className="mode-check" size={16} />}
-              </label>
-            </fieldset>
-            {game === 'words' && (
-              <fieldset className="difficulty-picker" disabled={!!busy}>
-                <legend>Word difficulty</legend>
-                <DifficultyOptions
-                  name="word-length"
-                  value={wordLength}
-                  onChange={setWordLength}
-                  options={wordOptions}
-                />
-                <p>Both players use this word length for every round.</p>
-              </fieldset>
+              </section>
             )}
-            {game === 'phrases' && (
+          </div>
+          <div className="home-setup">
+            <h2>Set up your game</h2>
+            <form
+              className="start-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void start(false);
+              }}
+            >
+              <div className="name-field">
+                <label className="field-label" htmlFor="display-name">
+                  What should we call you?
+                </label>
+                <input
+                  id="display-name"
+                  placeholder="Your display name"
+                  autoComplete="nickname"
+                  maxLength={20}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={!!busy}
+                />
+              </div>
+              <fieldset className="mode-picker">
+                <legend>Pick your kind of wordplay</legend>
+                <label className={mode === 'duel' ? 'selected' : ''}>
+                  <input
+                    type="radio"
+                    name="mode"
+                    value="duel"
+                    checked={mode === 'duel'}
+                    onChange={() => setMode('duel')}
+                  />
+                  <Swords size={21} />
+                  <span>
+                    <strong>Head to head</strong>
+                    <small>Race to the answer</small>
+                  </span>
+                  {mode === 'duel' && (
+                    <Check className="mode-check" size={16} />
+                  )}
+                </label>
+                <label className={mode === 'coop' ? 'selected' : ''}>
+                  <input
+                    type="radio"
+                    name="mode"
+                    value="coop"
+                    checked={mode === 'coop'}
+                    onChange={() => setMode('coop')}
+                  />
+                  <HeartHandshake size={21} />
+                  <span>
+                    <strong>Better together</strong>
+                    <small>Solve as a team</small>
+                  </span>
+                  {mode === 'coop' && (
+                    <Check className="mode-check" size={16} />
+                  )}
+                </label>
+              </fieldset>
+              {game === 'words' && (
+                <fieldset className="difficulty-picker" disabled={!!busy}>
+                  <legend>Word difficulty</legend>
+                  <DifficultyOptions
+                    name="word-length"
+                    value={wordLength}
+                    onChange={setWordLength}
+                    options={wordOptions}
+                  />
+                  <p>Both players use this word length for every round.</p>
+                </fieldset>
+              )}
+              {game === 'phrases' && (
+                <fieldset
+                  className="difficulty-picker phrase-difficulty"
+                  disabled={!!busy}
+                >
+                  <legend>Phrase difficulty</legend>
+                  <DifficultyOptions
+                    name="phrase-difficulty"
+                    value={phraseDifficulty}
+                    onChange={setPhraseDifficulty}
+                    options={phraseOptions}
+                  />
+                  <p>Both players use this phrase limit for every round.</p>
+                </fieldset>
+              )}
               <fieldset
-                className="difficulty-picker phrase-difficulty"
+                className="difficulty-picker"
                 disabled={!!busy}
+                aria-describedby="difficulty-help"
               >
-                <legend>Phrase difficulty</legend>
+                <legend>Bot difficulty</legend>
                 <DifficultyOptions
-                  name="phrase-difficulty"
-                  value={phraseDifficulty}
-                  onChange={setPhraseDifficulty}
-                  options={phraseOptions}
+                  name="bot-difficulty"
+                  value={botDifficulty}
+                  onChange={setBotDifficulty}
+                  options={botOptions}
                 />
-                <p>Both players use this phrase limit for every round.</p>
+                <p id="difficulty-help">
+                  If no friend joins, choose who fills the open seat.
+                </p>
+                <p>{BOT_PROFILES[botDifficulty].description}</p>
               </fieldset>
-            )}
-            <fieldset
-              className="difficulty-picker"
-              disabled={!!busy}
-              aria-describedby="difficulty-help"
-            >
-              <legend>Bot difficulty</legend>
-              <p id="difficulty-help">
-                If no friend joins, choose who fills the open seat.
-              </p>
-              <DifficultyOptions
-                name="bot-difficulty"
-                value={botDifficulty}
-                onChange={setBotDifficulty}
-                options={botOptions}
-              />
-              <p>{BOT_PROFILES[botDifficulty].description}</p>
-            </fieldset>
-            <button
-              className="button primary full"
-              disabled={!!busy}
-              type="submit"
-            >
-              {busy === 'create'
-                ? 'Making room for two…'
-                : 'Create a private room'}
-              <ArrowUpRight size={21} />
-            </button>
-          </form>
-          <form
-            className="join-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void start(true);
-            }}
-          >
-            <label htmlFor="room-code">Have an invite?</label>
-            <div>
-              <input
-                id="room-code"
-                aria-label="Room code"
-                placeholder="ROOM CODE"
-                maxLength={6}
-                autoCapitalize="characters"
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-                disabled={!!busy}
-              />
               <button
-                className="button secondary"
+                className="button primary full"
                 disabled={!!busy}
                 type="submit"
               >
-                {busy === 'join' ? 'Joining…' : 'Join'}
-                <ArrowRight size={17} />
+                {busy === 'create'
+                  ? 'Making room for two…'
+                  : 'Create a private room'}
+                <ArrowUpRight size={21} />
               </button>
-            </div>
-          </form>
-          {error && (
-            <p role="alert" className="error-message">
-              {error}
+            </form>
+            <form
+              className="join-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void start(true);
+              }}
+            >
+              <label htmlFor="room-code">Have an invite?</label>
+              <div>
+                <input
+                  id="room-code"
+                  aria-label="Room code"
+                  placeholder="ROOM CODE"
+                  maxLength={6}
+                  autoCapitalize="characters"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  disabled={!!busy}
+                />
+                <button
+                  className="button secondary"
+                  disabled={!!busy}
+                  type="submit"
+                >
+                  {busy === 'join' ? 'Joining…' : 'Join'}
+                  <ArrowRight size={17} />
+                </button>
+              </div>
+            </form>
+            {error && (
+              <p role="alert" className="error-message">
+                {error}
+              </p>
+            )}
+            <p className="privacy-note">
+              <LockKeyhole size={13} /> Just you and your friend. No account
+              needed.
             </p>
-          )}
-          <p className="privacy-note">
-            <LockKeyhole size={13} /> Just you and your friend. No account
-            needed.
-          </p>
+          </div>
         </section>
       </main>
       <Footer
