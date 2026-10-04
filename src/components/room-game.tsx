@@ -8,7 +8,6 @@ import {
   Copy,
   HeartHandshake,
   LockKeyhole,
-  Radio,
   Share2,
   Swords,
   WifiOff,
@@ -480,20 +479,13 @@ export function RoomGame({ code }: { code: string }) {
           />
         ) : (
           <>
-            <div className="match-header">
-              <PlayerBadge player={me} self now={now} />
-              <PlayerBadge player={opponent} now={now} />
-            </div>
-            {opponent &&
-              !opponent.isBot &&
-              now - opponent.lastSeen >= 15000 && (
-                <p className="opponent-offline" role="status">
-                  Your friend disconnected. They can rejoin this room with their
-                  progress intact.
-                </p>
-              )}
-            <div className={`arena ${phrases ? 'phrase-arena' : ''}`}>
-              <aside className="arena-timers" aria-label="Round timers">
+            <div
+              className="match-header"
+              role="group"
+              aria-label="Players and round timers"
+            >
+              <div className="match-player">
+                <PlayerBadge player={me} self now={now} />
                 <RoundTimer
                   remainingMs={remainingMs}
                   bonusMs={
@@ -501,6 +493,9 @@ export function RoomGame({ code }: { code: string }) {
                   }
                   running={phase === 'active' && !clockStopped}
                 />
+              </div>
+              <div className="match-player">
+                <PlayerBadge player={opponent} now={now} />
                 <RoundTimer
                   remainingMs={remainingFor(opponent)}
                   bonusMs={0}
@@ -516,7 +511,17 @@ export function RoomGame({ code }: { code: string }) {
                   }
                   announce={false}
                 />
-              </aside>
+              </div>
+            </div>
+            {opponent &&
+              !opponent.isBot &&
+              now - opponent.lastSeen >= 15000 && (
+                <p className="opponent-offline" role="status">
+                  Your friend disconnected. They can rejoin this room with their
+                  progress intact.
+                </p>
+              )}
+            <div className={`arena ${phrases ? 'phrase-arena' : ''}`}>
               <section className="your-lane" aria-labelledby="your-lane-title">
                 <div className="lane-heading">
                   <h1 id="your-lane-title">Your lane</h1>
@@ -583,56 +588,31 @@ export function RoomGame({ code }: { code: string }) {
                   Your keyboard works here, too. Enter to submit.
                 </span>
               </section>
-              <aside className="opponent-lane">
+              <aside
+                className="opponent-lane"
+                aria-labelledby="opponent-lane-title"
+              >
                 <div className="lane-heading">
-                  <h2>The other lane</h2>
-                  <LockKeyhole size={16} />
+                  <h2 id="opponent-lane-title">The other lane</h2>
+                  <span>{opponent?.count ?? 0} OF 6 GUESSES</span>
                 </div>
-                <p className="opponent-description">
-                  {opponent?.isBot
-                    ? `${opponent.name} uses its own clues. See its guess colors; letters stay hidden until the round ends.`
-                    : `${opponent?.name}’s guess colors. Letters stay hidden until the round ends.`}
-                </p>
                 <MaskedBoard
                   count={opponent?.count ?? 0}
                   guessMarks={opponent?.guessMarks}
                   template={template}
                   wordLength={wordLength}
                 />
-                {phrases && (
-                  <details className="phrase-help">
-                    <summary>Phrase color hints</summary>
-                    <PhraseInstructions difficulty={room.phraseDifficulty} />
-                  </details>
-                )}
-                <div className="opponent-note">
-                  <Radio size={16} />
-                  <span>
-                    {opponent?.solved
+                {(opponent?.solved ||
+                  opponent?.timedOut ||
+                  opponent?.count === 6) && (
+                  <p className="opponent-progress" role="status">
+                    {opponent.solved
                       ? 'A finish is being checked…'
-                      : opponent?.timedOut
+                      : opponent.timedOut
                         ? 'Their time is up. You can keep guessing.'
-                        : opponent?.count === 6
-                          ? 'All six guesses are in.'
-                          : 'A little thinking. A little suspense.'}
-                  </span>
-                </div>
-                <div className="arena-legend">
-                  <span>
-                    <i className="correct" /> Right spot
-                  </span>
-                  <span>
-                    <i className="present" /> Wrong spot
-                  </span>
-                  {phrases && (
-                    <span>
-                      <i className="elsewhere" /> Another word
-                    </span>
-                  )}
-                  <span>
-                    <i className="absent" /> Not here
-                  </span>
-                </div>
+                        : 'All six guesses are in.'}
+                  </p>
+                )}
               </aside>
             </div>
           </>

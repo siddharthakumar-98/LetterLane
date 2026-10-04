@@ -227,8 +227,72 @@ test.describe('responsive layout matrix', () => {
               .waitFor();
             await contained(
               page,
-              '.lobby-main, .lobby-seats, .player-badge, .your-lane, .board, .phrase-word, .keyboard, .masked-board, .result-player, .answer-reveal',
+              '.lobby-main, .lobby-seats, .player-badge, .match-header, .match-player, .your-lane, .opponent-lane, .board, .phrase-word, .keyboard, .masked-board, .result-player, .answer-reveal, .results-actions',
             );
+            if (phase === 'active' || phase === 'countdown') {
+              await expect(page.locator('.match-player')).toHaveCount(2);
+              for (const side of await page.locator('.match-player').all()) {
+                await expect(side.getByRole('timer')).toHaveCount(1);
+                await expect(side.locator('.player-badge')).toBeVisible();
+              }
+              await expect(
+                page.locator(
+                  '.arena-timers, .arena-legend, .opponent-description, .opponent-note',
+                ),
+              ).toHaveCount(0);
+              const lanes = await page.locator('.arena').evaluate((arena) => {
+                const self = arena
+                  .querySelector('.your-lane')!
+                  .getBoundingClientRect();
+                const opponent = arena
+                  .querySelector('.opponent-lane')!
+                  .getBoundingClientRect();
+                return {
+                  columns: self.right <= opponent.left,
+                  stacked: self.bottom <= opponent.top,
+                  aligned: Math.abs(self.top - opponent.top) < 1,
+                };
+              });
+              expect(
+                viewport.width > 640
+                  ? lanes.columns && lanes.aligned
+                  : lanes.stacked,
+              ).toBe(true);
+              if (viewport.width >= 768) {
+                const bar = await page.locator('.match-header').boundingBox();
+                expect(bar!.height).toBeLessThanOrEqual(90);
+              }
+            }
+            if (completed) {
+              const alignment = await page
+                .getByRole('button', { name: 'One more round' })
+                .evaluate((button) => {
+                  const bounds = button.getBoundingClientRect();
+                  const content = [...button.childNodes].flatMap((node) => {
+                    if (
+                      node.nodeType === Node.TEXT_NODE &&
+                      !node.textContent?.trim()
+                    )
+                      return [];
+                    const range = document.createRange();
+                    range.selectNode(node);
+                    return [range.getBoundingClientRect()];
+                  });
+                  const center = bounds.left + bounds.width / 2;
+                  return {
+                    buttonOffset: Math.abs(center - innerWidth / 2),
+                    contentOffset: Math.abs(
+                      (Math.min(...content.map((r) => r.left)) +
+                        Math.max(...content.map((r) => r.right))) /
+                        2 -
+                        center,
+                    ),
+                  };
+                });
+              expect(alignment.contentOffset).toBeLessThan(2);
+              if (viewport.width <= 640)
+                expect(alignment.buttonOffset).toBeLessThan(2);
+            }
             if (phase === 'active') {
               expect(
                 await page
@@ -244,6 +308,7 @@ test.describe('responsive layout matrix', () => {
               await page.screenshot({
                 path: testInfo.outputPath(`${phase}-${viewport.width}.png`),
                 fullPage: true,
+                animations: 'disabled',
               });
           }
         }

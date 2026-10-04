@@ -590,16 +590,16 @@ nav {
   gap: 10px;
   margin-top: 20px;
 }
-.lobby-legend span,
-.arena-legend span {
+
+.lobby-legend span {
   font-size: 12px;
   display: flex;
   align-items: center;
   gap: 6px;
   white-space: nowrap;
 }
-.lobby-legend i,
-.arena-legend i {
+
+.lobby-legend i {
   display: inline-block;
   width: 9px;
   height: 9px;
@@ -611,49 +611,7 @@ nav {
   padding-top: 20px;
   margin-top: 25px;
 }
-.match-header {
-  max-width: 950px;
-  display: grid;
-  grid-template-columns: 1fr 90px 1fr;
-  gap: 20px;
-  margin: 10px auto 0;
-  padding: 19px 26px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  align-items: center;
-}
-.match-header .opponent-badge {
-  justify-self: end;
-  flex-direction: row-reverse;
-  text-align: right;
-}
-.match-header .opponent-badge .player-status {
-  justify-content: flex-end;
-}
-.match-clock {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 6px;
-}
-.match-clock > span {
-  color: var(--muted);
-}
-.match-clock strong {
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-}
-.arena {
-  max-width: 870px;
-  margin: 22px auto 0;
-  display: grid;
-  grid-template-columns: minmax(0, 470px) 270px;
-  gap: 80px;
-}
+
 .lane-heading {
   display: flex;
   align-items: center;
@@ -797,28 +755,7 @@ nav {
   color: var(--muted);
   margin-top: 15px;
 }
-.opponent-lane {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 13px;
-  padding: 24px 22px;
-  align-self: start;
-  margin-top: 0;
-}
-.opponent-lane .lane-heading {
-  margin-bottom: 11px;
-}
-.opponent-lane .lane-heading h2 {
-  font-size: 15px;
-}
-.opponent-lane .lane-heading > svg {
-  color: var(--muted);
-}
-.opponent-description {
-  font-size: 12px;
-  line-height: 1.75;
-  color: var(--muted);
-}
+
 .masked-board {
   display: grid;
   gap: 13px;
@@ -858,25 +795,7 @@ nav {
   color: var(--muted);
   min-width: 27px;
 }
-.opponent-note {
-  font-size: 12px;
-  color: var(--muted);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 26px;
-  border-top: 1px solid var(--line);
-  padding-top: 16px;
-  line-height: 1.6;
-}
-.opponent-note svg {
-  flex-shrink: 0;
-}
-.arena-legend {
-  display: grid;
-  gap: 10px;
-  margin-top: 20px;
-}
+
 .opponent-offline {
   max-width: 950px;
   margin: 15px auto 0;
@@ -1029,6 +948,10 @@ nav {
 .results-actions .button {
   min-width: 240px;
 }
+.results-actions .button > svg {
+  margin-left: 0;
+  flex-shrink: 0;
+}
 .muted {
   color: var(--muted);
 }
@@ -1082,10 +1005,7 @@ nav {
   .page-shell {
     padding: 0 36px;
   }
-  .arena {
-    gap: 40px;
-    grid-template-columns: minmax(0, 450px) 260px;
-  }
+
   .lobby {
     gap: 45px;
   }
@@ -1100,13 +1020,7 @@ nav {
   .site-header {
     height: 85px;
   }
-  .arena {
-    gap: 25px;
-    grid-template-columns: minmax(0, 430px) 225px;
-  }
-  .opponent-lane {
-    padding: 19px 16px;
-  }
+
   .masked-tile {
     width: 17px;
     height: 22px;
@@ -1235,46 +1149,12 @@ nav {
   .lobby .player-badge strong {
     font-size: 14px;
   }
-  .match-header {
-    padding: 15px 12px;
-    gap: 8px;
-    grid-template-columns: minmax(0, 1fr) 90px minmax(0, 1fr);
-    margin-top: 0;
-  }
-  .match-header .avatar {
-    width: 31px;
-    height: 31px;
-    font-size: 13px;
-  }
-  .match-header .player-badge {
-    gap: 7px;
-  }
-  .match-header .player-badge strong {
-    font-size: 12px;
-  }
-  .match-header .you-tag {
-    display: none;
-  }
+
   .player-status {
     font-size: 12px;
     gap: 4px;
   }
-  .match-clock strong {
-    font-size: 14px;
-  }
-  .match-clock > span svg {
-    width: 15px;
-  }
-  .arena {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    margin: 24px auto 0;
-    max-width: 420px;
-  }
-  .your-lane {
-    width: 100%;
-  }
+
   .lane-heading {
     margin-bottom: 16px;
     padding: 0 5px;
@@ -1314,17 +1194,7 @@ nav {
     font-size: 12px;
     margin-top: 12px;
   }
-  .opponent-lane {
-    width: 100%;
-    padding: 17px 18px;
-  }
-  .opponent-lane .lane-heading {
-    padding: 0;
-    margin-bottom: 7px;
-  }
-  .opponent-description {
-    font-size: 12px;
-  }
+
   .masked-board {
     display: flex;
     gap: 8px;
@@ -1352,19 +1222,7 @@ nav {
   .row-number {
     font-size: 12px;
   }
-  .opponent-note {
-    font-size: 12px;
-    margin-top: 14px;
-    padding-top: 12px;
-  }
-  .arena-legend {
-    display: flex;
-    gap: 14px;
-    margin-top: 13px;
-  }
-  .arena-legend span {
-    font-size: 12px;
-  }
+
   .guess-feedback {
     min-height: 47px;
     font-size: 12px;
@@ -1502,9 +1360,7 @@ nav {
   .room-topline .topline-divider {
     margin: 0 5px;
   }
-  .opponent-description {
-    font-size: 14px;
-  }
+
   .lane-heading > span {
     font-size: 12px;
     letter-spacing: 0.5px;
@@ -1512,18 +1368,11 @@ nav {
   .player-status {
     font-size: 12px;
   }
-  .match-header .avatar {
-    display: none;
-  }
+
   .masked-board {
     gap: 8px;
   }
-  .arena-legend {
-    gap: 12px;
-  }
-  .arena-legend span {
-    font-size: 12px;
-  }
+
   .result-name small {
     font-size: 12px;
   }
@@ -1537,9 +1386,9 @@ nav {
 input::placeholder {
   color: var(--muted);
 }
+
 .room-topline > .eyebrow,
-.you-tag,
-.opponent-description {
+.you-tag {
   color: var(--muted);
 }
 
@@ -1591,109 +1440,6 @@ input::placeholder {
 .result-name .bot-tag {
   margin-left: 0;
   margin-top: 4px;
-}
-@media (max-width: 640px) {
-  .match-header .bot-tag {
-    font-size: 0.75rem;
-    margin-left: 4px;
-  }
-  .match-header .bot-tag svg {
-    display: none;
-  }
-}
-
-/* Personal countdowns share the playing area; letters remain private. */
-.match-clock .timer-label {
-  font-family: var(--font-body);
-  color: var(--muted);
-  font-size: 11px;
-  letter-spacing: 0.3px;
-}
-.match-clock [role='timer'] {
-  font-size: 24px;
-  color: var(--accent);
-}
-.match-clock.time-low [role='timer'] {
-  color: #ffb491;
-}
-.timer-bonus {
-  color: var(--accent);
-  font-size: 11px;
-  white-space: nowrap;
-}
-
-.match-header {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-.arena {
-  max-width: 1100px;
-  grid-template-columns: minmax(0, 470px) minmax(0, 270px) minmax(140px, 160px);
-  grid-template-areas: 'board opponent clocks';
-  gap: 32px;
-}
-.your-lane {
-  grid-area: board;
-}
-.opponent-lane {
-  grid-area: opponent;
-}
-.arena-timers {
-  grid-area: clocks;
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-  padding: 18px 12px;
-  background: var(--surface);
-  border: 1px solid var(--accent-line);
-  border-radius: 13px;
-  position: sticky;
-  top: 16px;
-  align-self: start;
-  z-index: 3;
-  box-shadow: 0 8px 24px #00000066;
-}
-.arena-timers .match-clock {
-  flex: 1;
-  min-width: 0;
-  text-align: center;
-}
-.arena-timers .timer-label {
-  overflow-wrap: anywhere;
-}
-.arena-timers [role='timer'] {
-  font-size: 30px;
-}
-.arena-timers .match-clock + .match-clock {
-  border-top: 1px solid var(--line);
-  padding-top: 20px;
-}
-@media (max-width: 1100px) {
-  .arena {
-    grid-template-columns: minmax(0, 1fr) 250px;
-    grid-template-areas: 'clocks clocks' 'board opponent';
-    gap: 24px;
-  }
-  .arena-timers {
-    flex-direction: row;
-    gap: 12px;
-    padding: 10px 14px;
-    top: 8px;
-  }
-  .arena-timers .match-clock + .match-clock {
-    border-top: 0;
-    border-left: 1px solid var(--line);
-    padding: 0 0 0 12px;
-  }
-}
-@media (max-width: 640px) {
-  .arena {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'clocks' 'board' 'opponent';
-  }
-  .arena-timers [role='timer'] {
-    font-size: 24px;
-  }
 }
 
 /* Shared navigation and phrase-only board rules leave Words unchanged. */
@@ -1817,17 +1563,7 @@ input::placeholder {
   font-weight: 700;
   font-size: min(22px, var(--phrase-tile));
 }
-.phrase-arena {
-  grid-template-columns: minmax(0, 1fr) 230px 150px;
-  max-width: 1200px;
-  gap: 24px;
-}
-.phrase-mode .your-lane {
-  min-width: 0;
-}
-.phrase-mode .arena-legend {
-  flex-wrap: wrap;
-}
+
 .phrase-mode .answer-reveal {
   display: block;
   container-type: inline-size;
@@ -1887,16 +1623,12 @@ input::placeholder {
   position: sticky;
   bottom: 0;
   z-index: 4;
-  background: var(--paper);
+  background: var(--surface);
 }
 .phrase-mode .keyboard {
   padding: 10px 0;
 }
-@media (max-width: 1100px) {
-  .phrase-arena {
-    grid-template-columns: minmax(0, 1fr) 230px;
-  }
-}
+
 @media (max-width: 800px) {
   .site-header {
     height: auto;
@@ -1912,17 +1644,205 @@ input::placeholder {
   }
 }
 @media (max-width: 640px) {
-  .phrase-arena {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .phrase-mode .result-players {
     grid-template-columns: minmax(0, 1fr);
   }
   .phrase-guess {
     padding: 10px;
   }
-  .phrase-mode .arena-legend {
-    display: flex;
+}
+
+/* Keep identity and time together above the two playing lanes. */
+.match-header {
+  position: sticky;
+  top: 8px;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 10px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.match-player {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding-right: 18px;
+}
+.match-player + .match-player {
+  border-left: 1px solid var(--line);
+  padding-right: 0;
+  padding-left: 18px;
+}
+.match-header .avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.match-header .player-badge {
+  gap: 8px;
+}
+.match-header .player-badge strong {
+  font-size: 14px;
+}
+.match-header .player-status {
+  margin-top: 3px;
+}
+.match-clock {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  gap: 2px;
+}
+.match-clock .timer-label {
+  display: none;
+}
+.match-clock [role='timer'] {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  color: var(--accent);
+}
+.match-clock.time-low [role='timer'] {
+  color: #ffb491;
+}
+.timer-bonus {
+  color: var(--accent);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.arena {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  max-width: 1000px;
+  margin: 18px auto 0;
+  gap: 24px;
+}
+.your-lane,
+.opponent-lane {
+  min-width: 0;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.opponent-lane .masked-board {
+  margin-top: 0;
+}
+.opponent-lane .masked-board:not(.masked-phrase-board) {
+  max-width: 310px;
+  margin-inline: auto;
+  gap: 7px;
+}
+.opponent-lane .masked-board:not(.masked-phrase-board) .masked-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+.opponent-lane .masked-board:not(.masked-phrase-board) .masked-tiles {
+  display: grid;
+  grid-template-columns: repeat(var(--masked-columns), minmax(0, 1fr));
+  gap: 5px;
+  width: 100%;
+}
+.opponent-lane .masked-board:not(.masked-phrase-board) .masked-tile {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+.opponent-lane .masked-state {
+  display: none;
+}
+.opponent-progress {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 12px;
+}
+@media (max-width: 800px) {
+  .match-header {
+    padding: 10px 12px;
+  }
+  .match-player {
+    padding-right: 12px;
+  }
+  .match-player + .match-player {
+    padding-left: 12px;
+  }
+  .match-header .avatar,
+  .match-header .you-tag {
+    display: none;
+  }
+  .arena {
+    gap: 16px;
+  }
+  .your-lane,
+  .opponent-lane {
+    padding: 14px;
+  }
+}
+@media (max-width: 640px) {
+  .match-player {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .match-header .player-badge strong {
+    font-size: 12px;
+  }
+  .match-header .bot-tag {
+    font-size: 12px;
+    margin-left: 4px;
+  }
+  .match-header .bot-tag svg {
+    display: none;
+  }
+  .match-clock {
+    align-items: flex-start;
+    min-height: 42px;
+  }
+  .match-clock [role='timer'] {
+    font-size: 24px;
+  }
+  .arena {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 440px;
+    margin-top: 16px;
+  }
+  .your-lane {
+    padding: 0;
+    background: transparent;
+    border: 0;
+  }
+  .phrase-mode .guess-controls {
+    background: var(--paper);
+  }
+  .opponent-lane .masked-board:not(.masked-phrase-board) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: none;
+    gap: 10px;
+  }
+  .opponent-lane .masked-board:not(.masked-phrase-board) .masked-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    text-align: center;
+  }
+  .opponent-lane .masked-board:not(.masked-phrase-board) .masked-tiles {
+    gap: 2px;
   }
 }
 
