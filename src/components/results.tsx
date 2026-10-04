@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { ArrowRight, RotateCcw, Sparkles, Trophy } from 'lucide-react';
+import { ArrowRight, RotateCcw, Trophy } from 'lucide-react';
 import type { RoomView } from '@/lib/game/types';
 import { PhraseRow } from './phrase-board';
 import { playableLetters } from '@/lib/game/phrases';
@@ -36,13 +36,11 @@ export function Results({
         : 'Great minds think alike.';
   return (
     <section className="results" aria-labelledby="result-title">
-      <div className="result-celebration" aria-hidden="true">
-        {room.match.outcome === 'team-loss' ? (
-          <Sparkles size={32} />
-        ) : (
-          <Trophy size={32} />
-        )}
-      </div>
+      {room.match.outcome !== 'team-loss' && (
+        <div className="result-celebration" aria-hidden="true">
+          <Trophy size={24} />
+        </div>
+      )}
       <span className="eyebrow">ROUND {room.match.round} · COMPLETE</span>
       <h1 id="result-title" aria-live="polite">
         {title}

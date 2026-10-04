@@ -173,30 +173,15 @@ function Lobby({
       <aside className="lobby-side">
         {room.game === 'phrases' ? (
           <>
-            <h2>Familiar phrases. Fresh clues.</h2>
-            <PhraseInstructions />
+            <h2>How this round works</h2>
+            <PhraseInstructions difficulty={room.phraseDifficulty} />
           </>
         ) : (
           <>
-            <span className="eyebrow">A LITTLE HEAD START</span>
-            <div className="sample-word">
-              {[...'HELLO'].map((x, i) => (
-                <span
-                  className={`tile ${i === 0 ? 'correct' : i === 2 ? 'present' : 'absent'}`}
-                  key={i}
-                >
-                  {x}
-                </span>
-              ))}
-            </div>
-            <h2>
-              Good words.
-              <br />
-              Better company.
-            </h2>
+            <h2>How this round works</h2>
             <p>
-              Five letters to find. Six chances each. Watch your friend’s
-              progress without giving the game away.
+              {room.wordLength ?? 5} letters to find. Six chances each. Watch
+              your friend’s progress without giving the game away.
             </p>
             <div className="lobby-legend">
               <span>
@@ -647,11 +632,6 @@ export function RoomGame({ code }: { code: string }) {
                   <span>
                     <i className="absent" /> Not here
                   </span>
-                </div>
-                <div className="lane-note">
-                  {room.mode === 'duel'
-                    ? 'Fast fingers help. A good word helps more.'
-                    : 'Two sets of six chances. One shared victory.'}
                 </div>
               </aside>
             </div>
