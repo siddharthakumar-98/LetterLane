@@ -57,9 +57,8 @@ for (const [length, level, answer, guess] of [
     await expect(
       page.getByRole('button', { name: 'Submit guess' }),
     ).toBeEnabled();
-    await expect(page.locator('.your-lane .board .tile')).toHaveCount(
-      length * 6,
-    );
+    // Words shows only the active row until guesses are submitted.
+    await expect(page.locator('.your-lane .board .tile')).toHaveCount(length);
     await expect(
       page.locator('.masked-row').first().locator('.masked-tile'),
     ).toHaveCount(length);
@@ -159,9 +158,8 @@ for (const [length, level, answer, guess] of [
     ).toBeEnabled();
     expect((await snapshot()).wordLength).toBe(length);
     expect((await snapshot()).match.round).toBe(2);
-    await expect(page.locator('.your-lane .board .tile')).toHaveCount(
-      length * 6,
-    );
+    // Words shows only the active row until guesses are submitted.
+    await expect(page.locator('.your-lane .board .tile')).toHaveCount(length);
   });
 }
 

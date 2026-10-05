@@ -654,6 +654,10 @@ nav {
 .board-wrap {
   position: relative;
 }
+/* Words starts with one row; keep room for the countdown overlay. */
+.room-shell:not(.phrase-mode) .board-wrap.is-counting-down {
+  min-height: 280px;
+}
 .countdown-overlay {
   position: absolute;
   inset: 0;

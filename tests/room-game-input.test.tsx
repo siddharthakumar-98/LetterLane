@@ -12,6 +12,7 @@ import { useRoom } from '../src/lib/client/use-room';
 import { projectRoom } from '../src/lib/game/rules';
 import { keyboardMarks } from '../src/lib/game/scoring';
 import { fixture, p1 } from './fixtures';
+import type { Mark } from '../src/lib/game/types';
 
 vi.mock('../src/lib/client/use-room', () => ({ useRoom: vi.fn() }));
 vi.mock('../src/lib/client/api', () => ({
@@ -126,3 +127,55 @@ it.each(['countdown', 'complete', 'disconnected', 'expired', 'busy'])(
     expect(actRoom).not.toHaveBeenCalled();
   },
 );
+it('reveals Words rows progressively in your lane and leaves Phrases unchanged', () => {
+  const show = (room: ReturnType<typeof fixture>, now = 2000) =>
+    vi
+      .mocked(useRoom)
+      .mockReturnValue({ ...state(), room: projectRoom(room, p1, now), now });
+  const attempt = (word: string, marks: Mark[]) => ({
+    word,
+    marks,
+    elapsedMs: 1000,
+    requestId: crypto.randomUUID(),
+  });
+  const miss = attempt('SLATE', [
+    'absent',
+    'absent',
+    'correct',
+    'absent',
+    'correct',
+  ]);
+  const room = fixture();
+  show(room);
+  const { container, rerender } = render(<RoomGame code="ABCDEF" />);
+  const rows = () => container.querySelectorAll('.your-lane .tile-row');
+  expect(rows()).toHaveLength(1);
+  type('CR');
+  expect(rows()[0].textContent).toBe('CR');
+  room.players[0].attempts = [miss];
+  show(room);
+  rerender(<RoomGame code="ABCDEF" />);
+  expect(rows()).toHaveLength(2);
+  expect(rows()[0].className).toContain('revealed');
+  room.players[0].attempts = Array.from({ length: 6 }, () => miss);
+  show(room);
+  rerender(<RoomGame code="ABCDEF" />);
+  expect(rows()).toHaveLength(6);
+  room.players[0].attempts = [miss, attempt('CRANE', Array(5).fill('correct'))];
+  show(room);
+  rerender(<RoomGame code="ABCDEF" />);
+  expect(rows()).toHaveLength(2);
+  room.players[0].attempts = [miss];
+  show(room, 1000 + 90000 + 20000 * 2 + 1);
+  rerender(<RoomGame code="ABCDEF" />);
+  expect(rows()).toHaveLength(1);
+  const phrases = fixture();
+  phrases.game = 'phrases';
+  phrases.match.answer = 'BETTER LATE THAN NEVER';
+  show(phrases);
+  rerender(<RoomGame code="ABCDEF" />);
+  expect(container.querySelectorAll('.your-lane .phrase-guess')).toHaveLength(
+    1,
+  );
+  expect(container.querySelector('.your-lane .tile-row')).toBeNull();
+});

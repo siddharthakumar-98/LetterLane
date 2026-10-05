@@ -263,6 +263,11 @@ export function RoomGame({ code }: { code: string }) {
       (phase === 'active' && remainingFor(opponent) === 0));
   const timeUp =
     me?.timedOut || (phase === 'active' && !clockStopped && remainingMs === 0);
+  // Words shows played rows plus the active row; Phrases manages its own rows.
+  const ownRows = Math.min(
+    6,
+    (me?.count ?? 0) + (me?.solved || clockStopped || timeUp ? 0 : 1),
+  );
   const canGuess =
     connected &&
     phase === 'active' &&
@@ -541,6 +546,7 @@ export function RoomGame({ code }: { code: string }) {
                     input={input}
                     template={template}
                     wordLength={wordLength}
+                    rows={phrases ? undefined : ownRows}
                   />
                   {phase === 'countdown' && (
                     <div className="countdown-overlay" role="status">

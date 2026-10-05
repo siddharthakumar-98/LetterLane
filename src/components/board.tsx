@@ -9,6 +9,7 @@ export const Board = memo(function Board({
   label = 'Your guesses',
   template,
   wordLength = 5,
+  rows = 6,
 }: {
   attempts: Attempt[];
   input?: string;
@@ -16,6 +17,8 @@ export const Board = memo(function Board({
   label?: string;
   template?: string;
   wordLength?: WordLength;
+  /** Words rows to render; Phrases manages its own rows. */
+  rows?: number;
 }) {
   if (template)
     return (
@@ -34,7 +37,7 @@ export const Board = memo(function Board({
       role="group"
       aria-label={label}
     >
-      {Array.from({ length: 6 }, (_, row) => {
+      {Array.from({ length: rows }, (_, row) => {
         const attempt = attempts[row];
         const letters = attempt?.word ?? (row === attempts.length ? input : '');
         return (
