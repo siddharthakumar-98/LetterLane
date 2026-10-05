@@ -255,6 +255,12 @@ export function RoomGame({ code }: { code: string }) {
           (player?.timerEndsAt ?? 0) - (player?.timerStoppedAt ?? displayNow),
         );
   const remainingMs = remainingFor(me);
+  const opponentFinished =
+    !!opponent &&
+    (opponent.solved ||
+      opponent.timedOut ||
+      opponent.count === 6 ||
+      (phase === 'active' && remainingFor(opponent) === 0));
   const timeUp =
     me?.timedOut || (phase === 'active' && !clockStopped && remainingMs === 0);
   const canGuess =
@@ -601,6 +607,7 @@ export function RoomGame({ code }: { code: string }) {
                   guessMarks={opponent?.guessMarks}
                   template={template}
                   wordLength={wordLength}
+                  finished={opponentFinished}
                 />
                 {(opponent?.solved ||
                   opponent?.timedOut ||

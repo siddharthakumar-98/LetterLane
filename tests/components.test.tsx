@@ -49,15 +49,33 @@ it('opponent board shows evaluated colors and accessible descriptions without le
   expect(container.querySelectorAll('.correct')).toHaveLength(1);
   expect(container.querySelectorAll('.present')).toHaveLength(4);
   expect(container.querySelectorAll('.absent')).toHaveLength(5);
-  expect(container.querySelectorAll('.masked-tile')).toHaveLength(30);
+  // Two played rows plus one pending row; no further empty placeholders.
+  expect(container.querySelectorAll('.masked-row')).toHaveLength(3);
+  expect(container.querySelectorAll('.masked-tile')).toHaveLength(15);
   expect(
     [...container.querySelectorAll('.masked-tile')].every(
       (tile) => tile.textContent === '',
     ),
   ).toBe(true);
   expect(
-    screen.getByRole('img', { name: 'Opponent guess 3: empty' }),
+    screen.getByRole('img', { name: 'Opponent guess 3: waiting' }),
   ).toBeTruthy();
+  expect(
+    container.querySelector('.masked-row:last-child')!.className,
+  ).toContain('is-next');
+});
+it('opponent board reveals rows progressively and drops the pending row once finished', () => {
+  const { container, rerender } = render(<MaskedBoard count={0} />);
+  expect(container.querySelectorAll('.masked-row')).toHaveLength(1);
+  expect(container.querySelectorAll('.masked-row.is-next')).toHaveLength(1);
+  rerender(<MaskedBoard count={4} />);
+  expect(container.querySelectorAll('.masked-row')).toHaveLength(5);
+  rerender(<MaskedBoard count={2} finished />);
+  expect(container.querySelectorAll('.masked-row')).toHaveLength(2);
+  expect(container.querySelector('.is-next')).toBeNull();
+  rerender(<MaskedBoard count={6} />);
+  expect(container.querySelectorAll('.masked-row')).toHaveLength(6);
+  expect(container.querySelector('.is-next')).toBeNull();
 });
 it('opponent phrase colors follow word boundaries and include blue without letter or punctuation tiles', () => {
   const { container } = render(
@@ -94,7 +112,7 @@ it('opponent phrase colors follow word boundaries and include blue without lette
       (tile) => tile.textContent === '',
     ),
   ).toBe(true);
-  expect(container.querySelectorAll('.masked-tile')).toHaveLength(42);
+  expect(container.querySelectorAll('.masked-tile')).toHaveLength(14);
 });
 it('keeps a neutral fallback for snapshots without color history', () => {
   const { container } = render(<MaskedBoard count={2} />);

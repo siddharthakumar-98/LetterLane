@@ -74,11 +74,14 @@ export const MaskedBoard = memo(function MaskedBoard({
   guessMarks = [],
   template,
   wordLength = 5,
+  finished = false,
 }: {
   count: number;
   guessMarks?: Mark[][];
   template?: string;
   wordLength?: WordLength;
+  /** No further guesses are possible, so no next row is shown. */
+  finished?: boolean;
 }) {
   const words = template
     ? phraseWords(template)
@@ -100,34 +103,38 @@ export const MaskedBoard = memo(function MaskedBoard({
       role="group"
       aria-label={`Opponent has used ${count} of 6 guesses. Letters are hidden.`}
     >
-      {Array.from({ length: 6 }, (_, row) => (
-        <div
-          className="masked-row"
-          key={row}
-          role="img"
-          aria-label={`Opponent guess ${row + 1}: ${
-            row < count
-              ? guessMarks[row]?.map((mark) => colors[mark]).join(', ') ||
-                'played'
-              : 'empty'
-          }`}
-        >
-          <span className="row-number">0{row + 1}</span>
-          <div className="masked-tiles" aria-hidden="true">
-            {words.map((word, index) => (
-              <span className="masked-word" key={index}>
-                {Array.from({ length: word.length }, (_, col) => (
-                  <span
-                    key={col}
-                    className={`masked-tile ${row < count ? (guessMarks[row]?.[word.offset + col] ?? 'filled') : ''}`}
-                  />
-                ))}
-              </span>
-            ))}
+      {/* Played rows plus one pending row; later rows appear as guesses arrive. */}
+      {Array.from(
+        { length: Math.min(6, count + (finished ? 0 : 1)) },
+        (_, row) => (
+          <div
+            className={`masked-row ${row < count ? '' : 'is-next'}`}
+            key={row}
+            role="img"
+            aria-label={`Opponent guess ${row + 1}: ${
+              row < count
+                ? guessMarks[row]?.map((mark) => colors[mark]).join(', ') ||
+                  'played'
+                : 'waiting'
+            }`}
+          >
+            <span className="row-number">0{row + 1}</span>
+            <div className="masked-tiles" aria-hidden="true">
+              {words.map((word, index) => (
+                <span className="masked-word" key={index}>
+                  {Array.from({ length: word.length }, (_, col) => (
+                    <span
+                      key={col}
+                      className={`masked-tile ${row < count ? (guessMarks[row]?.[word.offset + col] ?? 'filled') : ''}`}
+                    />
+                  ))}
+                </span>
+              ))}
+            </div>
+            <span className="masked-state">{row < count ? 'Played' : '—'}</span>
           </div>
-          <span className="masked-state">{row < count ? 'Played' : '—'}</span>
-        </div>
-      ))}
+        ),
+      )}
     </div>
   );
 });

@@ -240,6 +240,35 @@ test.describe('responsive layout matrix', () => {
                   '.arena-timers, .arena-legend, .opponent-description, .opponent-note',
                 ),
               ).toHaveCount(0);
+              const mirrored = await page
+                .locator('.match-header')
+                .evaluate((header) => {
+                  const [self, other] = [
+                    ...header.querySelectorAll('.match-player'),
+                  ].map((side) => ({
+                    badge: side
+                      .querySelector('.player-badge')!
+                      .getBoundingClientRect(),
+                    clock: side
+                      .querySelector('[role="timer"]')!
+                      .getBoundingClientRect(),
+                  }));
+                  return (
+                    self.badge.left <= self.clock.left &&
+                    other.clock.right <= other.badge.right &&
+                    self.clock.right <= other.clock.left
+                  );
+                });
+              expect(mirrored).toBe(true);
+              // Played opponent rows plus one pending row until they finish.
+              const opponentSolved =
+                phase === 'active' && puzzle.guess === puzzle.answer;
+              await expect(page.locator('.masked-row')).toHaveCount(
+                phase === 'active' ? (opponentSolved ? 1 : 2) : 1,
+              );
+              await expect(page.locator('.masked-row.is-next')).toHaveCount(
+                opponentSolved ? 0 : 1,
+              );
               const lanes = await page.locator('.arena').evaluate((arena) => {
                 const self = arena
                   .querySelector('.your-lane')!
