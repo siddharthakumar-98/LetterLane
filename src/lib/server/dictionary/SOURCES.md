@@ -32,9 +32,19 @@ parity with Wordle. LetterLane keeps its own answer selection and game rules.
 Do not replace the answer list with all accepted guesses: the expanded list
 contains uncommon words and inflected forms suitable as guesses.
 
-For future updates, use the same union operation with the existing list, retain
-local additions, record the new source and checksum, and run the dictionary and
-multiplayer tests. Serving the application never contacts NYT or downloads words.
+### Rights review — October 5, 2026
+
+This provenance record is not a reuse license. No permission or license for the
+NYT-derived compilation is recorded in this repository. Before monetization,
+obtain permission or qualified legal clearance, or replace the extracted list
+with an independently sourced, commercially reusable dictionary. A replacement
+must not union the old NYT-derived entries back in. Audit answer-list provenance
+and preserve required upstream notices as well. See
+[the ads readiness review](../../../../docs/ads-readiness-review.md).
+
+For future updates, document the source, license, filtering method and checksum,
+then run the dictionary and multiplayer tests. Serving the application never
+contacts NYT or downloads words.
 
 ## Six- and seven-letter Words — September 29, 2026
 

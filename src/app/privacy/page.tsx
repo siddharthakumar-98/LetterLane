@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: 'Privacy — LetterLane',
   description: 'How LetterLane handles guest identities, game data and ads.',
 };
-// Draft wording: review it for your deployment and jurisdiction before launch.
+// Describes the implemented data flows; deployment-specific legal review is separate.
 export default function Page() {
   return (
     <ContentPage
@@ -17,17 +17,21 @@ export default function Page() {
       <ul>
         <li>
           <strong>A guest identity.</strong> Your browser receives an anonymous
-          guest session so you can rejoin your rooms. It is not linked to your
-          name, email or another account.
+          guest session so you can rejoin your rooms. You do not need to provide
+          an email address or sign in with another account. The guest identity
+          is associated with your chosen display name and game activity.
         </li>
         <li>
           <strong>Game data.</strong> The display name you choose, the rooms you
           join, your accepted guesses and match results. Rooms expire after 24
-          hours and are kept until scheduled database cleanup removes them.
+          hours; starting a rematch renews that period. Expired rooms become
+          inaccessible but remain stored until database cleanup removes them.
         </li>
         <li>
-          <strong>Browser storage.</strong> Your last display name, and a note
-          that a room’s lobby ad has already been shown in this tab.
+          <strong>Browser storage.</strong> Your guest session, your last
+          display name, and a note that a room’s lobby ad has already been
+          requested in this tab. Clearing site storage can prevent you from
+          rejoining a room under the same guest identity.
         </li>
         <li>
           <strong>Abuse limits.</strong> Request counts per guest identity, used
@@ -37,14 +41,20 @@ export default function Page() {
       <h2>Advertising</h2>
       <p>
         The home pages and room lobby can show ads from Google AdSense. Google
-        and its partners may use cookies or similar technologies to show ads and
-        measure them, including ads based on your previous visits to this and
-        other websites. Ads never receive the hidden answer or your opponent’s
-        letters, which the server does not send to your browser during play.
+        and its partners may place and read cookies or use similar technologies,
+        including web beacons and IP addresses, to collect information for ad
+        delivery and measurement. Personalized ads may use information about
+        your previous visits to this and other websites. LetterLane does not
+        include your game data in ad requests. Third-party scripts run in your
+        browser and may access page content; the hidden answer and your
+        opponent’s letters are withheld from the browser until the round ends.
       </p>
       <p>
-        Where required, you are asked for consent before personalized ads are
-        shown. You can change that choice at any time:
+        Google’s European consent message lets eligible visitors choose whether
+        to allow advertising cookies and personalized ads. Use the control below
+        to revisit those choices. In supported US states, use Google’s “Do Not
+        Sell or Share My Personal Information” link to open the opt-out message.
+        If a privacy control does not load, contact us using the email below.
       </p>
       <ConsentChoices />
       <p>
@@ -74,6 +84,17 @@ export default function Page() {
           aboutads.info
         </a>
         .
+      </p>
+      <h2>Contact and privacy requests</h2>
+      <p>
+        For privacy questions or requests to access or delete game data, email{' '}
+        <a href="mailto:siddukumar321@gmail.com">siddukumar321@gmail.com</a>.
+        Include only the details needed to identify your request, such as a room
+        code and display name. Do not send passwords or session tokens. Because
+        the game uses guest identities, we may need additional information to
+        verify that a request relates to your data. If you email us, we receive
+        your email address and the information you choose to include so we can
+        respond.
       </p>
       <h2>Changes to this page</h2>
       <p>
