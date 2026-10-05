@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { getAdsConfig } from '@/lib/ads-config';
-import { adBreak } from '@/lib/client/ads';
+import { ADS_READY_EVENT, adBreak } from '@/lib/client/ads';
 
 /** A responsive display unit with a reserved, labelled space. */
 export function AdSlot({ className = '' }: { className?: string }) {
@@ -47,26 +47,37 @@ function claimLobbyAd(code: string) {
   return true;
 }
 /** Google's closable interstitial when the lobby opens, at most once per room
- * per browser session. Only an unready player is eligible, so the countdown
- * (which needs their own Ready or Play with bot) cannot start beneath it. */
+ * per browser session. Only an unready player is eligible, and readiness is
+ * locked from the request until Google reports the break done, so the
+ * countdown (which needs their own Ready or Play with bot) cannot start beneath
+ * it. The break is requested only once Google's API is ready and has preloaded,
+ * so a queued request cannot surface after the player has moved on; if the API
+ * is not ready while the player is still eligible, the lobby has no ad. */
 export function useLobbyAd(code: string, eligible: boolean) {
-  const [showing, setShowing] = useState(false);
+  const [locked, setLocked] = useState(false);
   useEffect(() => {
-    if (!eligible || !getAdsConfig()?.h5 || !claimLobbyAd(code)) return;
-    let release: ReturnType<typeof setTimeout> | undefined;
-    const done = () => {
-      clearTimeout(release);
-      setShowing(false);
+    if (!eligible || !getAdsConfig()?.h5) return;
+    const request = () => {
+      if (!claimLobbyAd(code)) return;
+      // Never leave the lobby locked if Google misses its callbacks.
+      const release = setTimeout(() => setLocked(false), LOBBY_LOCK_LIMIT_MS);
+      const done = () => {
+        clearTimeout(release);
+        setLocked(false);
+      };
+      setLocked(true);
+      void adBreak('start', 'lobby', {
+        beforeAd: () => setLocked(true),
+        afterAd: done,
+      }).then(done);
     };
-    void adBreak('start', 'lobby', {
-      beforeAd: () => {
-        setShowing(true);
-        // Never leave the lobby locked if Google misses its close callback.
-        release = setTimeout(done, LOBBY_LOCK_LIMIT_MS);
-      },
-      afterAd: done,
-    }).then(done);
+    if (window.letterlaneAdsReady) {
+      request();
+      return;
+    }
+    window.addEventListener(ADS_READY_EVENT, request, { once: true });
+    return () => window.removeEventListener(ADS_READY_EVENT, request);
   }, [code, eligible]);
-  return showing;
+  return locked;
 }
 export const LOBBY_LOCK_LIMIT_MS = 60000;

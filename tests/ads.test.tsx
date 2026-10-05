@@ -7,7 +7,11 @@ import {
   contentSecurityPolicy,
   getAdsConfig,
 } from '../src/lib/ads-config';
-import { AD_BREAK_TIMEOUT_MS, adBreak } from '../src/lib/client/ads';
+import {
+  AD_BREAK_TIMEOUT_MS,
+  ADS_READY_EVENT,
+  adBreak,
+} from '../src/lib/client/ads';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AdSlot, LOBBY_LOCK_LIMIT_MS } from '../src/components/ads';
 import { AdsScript } from '../src/components/ads-script';
@@ -37,6 +41,8 @@ beforeEach(() => {
   vi.stubEnv('NEXT_PUBLIC_ADSENSE_TEST', '');
   delete window.adBreak;
   delete window.adsbygoogle;
+  // Most lobby tests start with Google's API already initialized.
+  window.letterlaneAdsReady = true;
 });
 afterEach(() => {
   cleanup();
@@ -120,6 +126,9 @@ it('loads AdSense with plain tags only when configured', () => {
   vi.stubEnv('NEXT_PUBLIC_ADSENSE_TEST', '1');
   const h5 = renderToStaticMarkup(<AdsScript />);
   expect(h5).toContain('window.adBreak=window.adConfig');
+  expect(h5).toContain(
+    `onReady:function(){window.letterlaneAdsReady=true;window.dispatchEvent(new Event('${ADS_READY_EVENT}'));}`,
+  );
   expect(h5).toContain('data-ad-frequency-hint="120s"');
   expect(h5).toContain('data-adbreak-test="on"');
 });
@@ -202,12 +211,14 @@ it('shows the lobby interstitial once per room and locks readiness while it is u
   expect(calls[0]).toMatchObject({ type: 'start', name: 'lobby' });
   const ready = () =>
     screen.getByRole('button', { name: /I’m ready/ }) as HTMLButtonElement;
-  expect(ready().disabled).toBe(false);
+  // Locked from the request, so the player cannot ready up before it shows.
+  expect(ready().disabled).toBe(true);
   act(() => calls[0].beforeAd!());
   expect(ready().disabled).toBe(true);
   act(() => calls[0].afterAd!());
   expect(ready().disabled).toBe(false);
   await act(async () => calls[0].adBreakDone!({ breakStatus: 'viewed' }));
+  expect(ready().disabled).toBe(false);
   rerender(<RoomGame code="LOBBY1" />);
   unmount();
   render(<RoomGame code="LOBBY1" />);
@@ -227,6 +238,52 @@ it('releases the lobby lock if the close callback never arrives', () => {
   expect(ready().disabled).toBe(true);
   act(() => vi.advanceTimersByTime(LOBBY_LOCK_LIMIT_MS));
   expect(ready().disabled).toBe(false);
+});
+it('unlocks at once when Google has no ad for the lobby', async () => {
+  enableAds();
+  const calls: Parameters<NonNullable<Window['adBreak']>>[0][] = [];
+  window.adBreak = (options) => calls.push(options);
+  show(lobby());
+  render(<RoomGame code="LOBBY5" />);
+  const ready = () =>
+    screen.getByRole('button', { name: /I’m ready/ }) as HTMLButtonElement;
+  expect(ready().disabled).toBe(true);
+  await act(async () =>
+    calls[0].adBreakDone!({ breakStatus: 'frequencyCapped' }),
+  );
+  expect(ready().disabled).toBe(false);
+});
+it('waits for Google to be ready, and skips the ad once the player has readied', () => {
+  enableAds();
+  window.letterlaneAdsReady = false;
+  const calls: unknown[] = [];
+  window.adBreak = (options) => calls.push(options);
+  show(lobby());
+  const view = render(<RoomGame code="LOBBY6" />);
+  expect(calls).toHaveLength(0);
+  expect(
+    (screen.getByRole('button', { name: /I’m ready/ }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(false);
+  act(() => {
+    window.letterlaneAdsReady = true;
+    window.dispatchEvent(new Event(ADS_READY_EVENT));
+  });
+  expect(calls).toHaveLength(1);
+  view.unmount();
+  // A late-loading API never interrupts a player who is already ready.
+  window.letterlaneAdsReady = false;
+  const room = lobby();
+  show(room);
+  const late = render(<RoomGame code="LOBBY7" />);
+  room.players[0].ready = true;
+  show(room);
+  late.rerender(<RoomGame code="LOBBY7" />);
+  act(() => {
+    window.letterlaneAdsReady = true;
+    window.dispatchEvent(new Event(ADS_READY_EVENT));
+  });
+  expect(calls).toHaveLength(1);
 });
 it('never interrupts a ready player, a started match or a site without H5 ads', () => {
   const calls: unknown[] = [];

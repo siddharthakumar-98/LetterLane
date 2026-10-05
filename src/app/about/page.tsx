@@ -91,11 +91,10 @@ export default function Page() {
         <h2 id="words-source">Where the words come from</h2>
         <p>
           Five-letter answers come from {count(answers.length)} hand-picked,
-          familiar words, and {count(allowed.length)} five-letter words are
-          accepted as guesses. Six- and seven-letter rounds draw from{' '}
+          familiar words, and six- and seven-letter rounds draw from{' '}
           {count(longAnswers['6'].length)} and {count(longAnswers['7'].length)}{' '}
-          curated answers, checked against an ordinary-English vocabulary built
-          from{' '}
+          curated answers. Every guess, in Words and in Phrases, is checked
+          against ordinary-English word lists built from{' '}
           <a
             href="https://github.com/en-wl/wordlist"
             rel="noopener noreferrer"
@@ -103,7 +102,8 @@ export default function Page() {
           >
             SCOWL
           </a>{' '}
-          by Kevin Atkinson, which also validates every word in Phrases.
+          (copyright Kevin Atkinson, used under its permissive license),
+          including {count(allowed.length)} accepted five-letter words.
         </p>
         <p>
           The {count(proverbs.phrases.length)} Phrases answers are traditional

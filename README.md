@@ -192,9 +192,9 @@ All three lengths use six guesses, the 1:30 starting clock, and +20 seconds per 
 
 ## Words vocabulary
 
-`src/lib/server/dictionary/answers.json` contains **825** hand-curated five-letter possible answers. `allowed-guesses.json` contains **14,856** allowed guesses: the **14,855** entries extracted from the official NYT Wordle client on September 13, 2026, combined with every existing LetterLane entry. This includes IRATE, PLOWS, LOOPS, and the original LetterLane-only entry FOOEY. The original five-letter answer pool and allowed guesses are preserved.
+`src/lib/server/dictionary/answers.json` contains **825** hand-curated five-letter possible answers. `allowed-guesses.json` contains **6,829** allowed five-letter guesses generated from the pinned SCOWL release at size 70 with the same ordinary-word filters as Phrases (so common openers such as ADIEU, AUDIO and RAISE are accepted). Every answer is in that list. The earlier NYT-derived list was removed on October 5, 2026 because it had no recorded license.
 
-See [dictionary source notes](src/lib/server/dictionary/SOURCES.md) for the exact source asset, checksum, extraction method, and preservation checks. The list is a pinned snapshot, not a runtime dependency or an automatic sync with NYT. Updating the dictionary requires a new application build, with no Supabase migration or environment-variable changes.
+See [dictionary source notes](src/lib/server/dictionary/SOURCES.md) for the build script, filters, checksum and license. The list is a pinned snapshot, not a runtime dependency. Updating the dictionary requires a new application build, with no Supabase migration or environment-variable changes.
 
 Six- and seven-letter guesses reuse the checked-in SCOWL size-35 ordinary-English vocabulary: **5,298** six-letter and **6,737** seven-letter entries. No phrase-answer exceptions or stripped contractions are imported into these word lists. `long-answers.json` holds **257** curated six-letter answers and **295** curated seven-letter answers; automated checks ensure every answer exists in the matching vocabulary. Bots select from the answer pool for the room’s length. The SCOWL snapshot, filtering policy, and license are documented in the dictionary source notes.
 

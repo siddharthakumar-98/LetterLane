@@ -11,12 +11,16 @@ declare global {
   interface Window {
     adsbygoogle?: unknown[];
     adBreak?: (options: AdBreakOptions) => void;
+    /** Set by the inline H5 setup once Google's API is ready and preloaded. */
+    letterlaneAdsReady?: boolean;
     googlefc?: {
       callbackQueue?: unknown[];
       showRevocationMessage?: () => void;
     };
   }
 }
+/** Dispatched on window by the inline H5 setup from adConfig's onReady. */
+export const ADS_READY_EVENT = 'letterlane-ads-ready';
 /** The queue never answers when the script is blocked, so give up quietly. */
 export const AD_BREAK_TIMEOUT_MS = 5000;
 export function adBreak(

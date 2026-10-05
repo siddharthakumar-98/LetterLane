@@ -23,7 +23,7 @@ Sources: [H5 Games Ads](https://adsense.google.com/start/solutions/h5-games-ads/
 
 ## Fairness: the lobby interstitial never costs game time
 
-Each player's clock starts when the three-second countdown ends. The interstitial is requested only while the player is **in the lobby and not yet ready**. A countdown needs that player's own **I'm ready** or **Play with bot** action, and those controls are disabled between Google's `beforeAd` and `afterAd` callbacks, so a match cannot start underneath the ad. It is requested at most once per room per browser session (`sessionStorage` key `letterlane-ad-lobby:<code>`, plus an in-memory guard when storage is unavailable). Google applies its own frequency cap (`data-ad-frequency-hint="120s"`). Rematches go straight from results to the countdown and never show it. A blocked script resolves after five seconds of silence and leaves the lobby untouched. If Google ever misses its close callback, the controls unlock after 60 seconds; the ad itself still covers the page until it is closed. No game rule, server, API, polling or database change is involved.
+Each player's clock starts when the three-second countdown ends. The interstitial is requested only while the player is **in the lobby and not yet ready**. The request is made only after Google's API reports it is ready (`adConfig` `onReady`), so a queued request can never surface later; if the API is not ready while the player is still unready, that lobby has no ad. A countdown needs that player's own **I'm ready** or **Play with bot** action, and those controls are disabled from the request until Google reports the break done, so a match cannot start underneath the ad. It is requested at most once per room per browser session (`sessionStorage` key `letterlane-ad-lobby:<code>`, plus an in-memory guard when storage is unavailable). Google applies its own frequency cap (`data-ad-frequency-hint="120s"`). Rematches go straight from results to the countdown and never show it. A blocked script never becomes ready, so the lobby is untouched. If Google ever misses its close callback, the controls unlock after 60 seconds; the ad itself still covers the page until it is closed. No game rule, server, API, polling or database change is involved.
 
 ## Setup
 
@@ -45,6 +45,8 @@ Each player's clock starts when the three-second countdown ends. The interstitia
 8. **Privacy page.** `/privacy` is a draft. Review it for your jurisdiction and add a contact method before launch.
 
 ## AdSense readiness checklist
+
+The October 5 review and its open items are in [ads-readiness-review.md](ads-readiness-review.md).
 
 Checked against Google's [site connection](https://support.google.com/adsense/answer/7584263) and [content](https://support.google.com/adsense/answer/7299563) guidance:
 
