@@ -5,7 +5,7 @@ Branch: `init-ads`. LetterLane can show Google AdSense ads in two places:
 - **Home pages (`/` and `/phrases`):** one responsive display unit in the reserved full-width `support` row below the intro and setup columns. The create-room action stays above the fold. When Google reports the unit as `unfilled`, the labelled space collapses.
 - **Room lobby:** Google's own closable full-screen interstitial (H5 Games Ads, `adBreak({ type: 'start' })`) when the waiting room opens.
 
-Ads are **off by default**. Without a valid `NEXT_PUBLIC_ADSENSE_CLIENT`, no Google script loads, no slot or interstitial renders, `/ads.txt` returns 404 and the Content-Security-Policy is unchanged.
+**Production builds include LetterLane's AdSense site code** (publisher `ca-pub-6747177342720865`, `ADSENSE_CLIENT` in `src/lib/ads-config.ts`) in the `<head>` of every page, as AdSense requires for site verification, and serve `/ads.txt`. This loads Google's tag only: the home display unit and lobby interstitial stay off until their variables are set. Development (`pnpm dev`) stays ad-free. Set `NEXT_PUBLIC_ADSENSE_CLIENT` to another publisher ID to override it, or to `off` to disable ads entirely; then no Google script loads, `/ads.txt` returns 404 and the Content-Security-Policy is unchanged. If **Auto ads** is enabled in the AdSense dashboard, Google may also place ads on its own, including on room pages; keep it off to limit ads to the placements above.
 
 ## Vendor research (October 2026)
 
@@ -28,14 +28,14 @@ Each player's clock starts when the three-second countdown ends. The interstitia
 ## Setup
 
 1. **Domain and content.** Deploy publicly (Vercel per the README). `/`, `/phrases` and `/privacy` are now indexable; room pages remain `noindex`. AdSense reviews sites for original, useful content, and a thin landing page can delay approval.
-2. **AdSense account.** Sign up at adsense.google.com, add the site, and complete review. Note the publisher ID (`ca-pub-…`).
+2. **AdSense account.** Sign up at adsense.google.com, add the site, and complete review. The publisher ID `ca-pub-6747177342720865` is already built in, so the verification code is on every page of a production deployment.
 3. **Display unit.** In AdSense → Ads → By ad unit, create a responsive **Display** unit and copy its numeric `data-ad-slot`.
 4. **Consent (required for EEA, UK and Switzerland).** In AdSense → Privacy & messaging, publish a **European regulations** message (Google's certified, IAB TCF CMP) and a **US state regulations** message. They load with the same AdSense tag; no other vendor is needed. `/privacy` has a **Privacy and cookie settings** button that reopens the consent message.
 5. **H5 Games Ads.** Apply through the H5 Games Ads sign-up form. Until approval, leave `NEXT_PUBLIC_ADSENSE_H5` unset; the home display ad still works.
 6. **Environment.** Set these in Vercel (and `.env.local` to test). They are public identifiers, not secrets, and are inlined at build time, so rebuild after changing them.
 
    ```sh
-   NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-0000000000000000
+   NEXT_PUBLIC_ADSENSE_CLIENT=  # optional: another ca-pub ID, or off
    NEXT_PUBLIC_ADSENSE_HOME_SLOT=0000000000
    NEXT_PUBLIC_ADSENSE_H5=1     # only after H5 Games Ads approval
    NEXT_PUBLIC_ADSENSE_TEST=1   # development only: requests test ads
