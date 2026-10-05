@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { contentSecurityPolicy, getAdsConfig } from './src/lib/ads-config';
 const config: NextConfig = {
   serverExternalPackages: ['@electric-sql/pglite', 'postgres'],
   async headers() {
@@ -15,11 +16,7 @@ const config: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' __DEV_EVAL__;  style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co http://127.0.0.1:* ws://127.0.0.1:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self'".replace(
-                '__DEV_EVAL__',
-                process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : '',
-              ),
+            value: contentSecurityPolicy(getAdsConfig() !== null),
           },
         ],
       },

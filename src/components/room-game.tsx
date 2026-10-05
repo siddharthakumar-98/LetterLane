@@ -28,6 +28,7 @@ import { usePhraseValidation } from '@/lib/client/use-phrase-validation';
 import { PhraseInstructions } from './phrase-instructions';
 import { canPlayWithBot } from '@/lib/game/matchmaking';
 import { BotNotice, BotTag } from './bot-notice';
+import { useLobbyAd } from './ads';
 const EMPTY_ATTEMPTS: Attempt[] = [];
 function PlayerBadge({
   player,
@@ -70,6 +71,7 @@ function Lobby({
   room,
   now,
   busy,
+  locked,
   onReady,
   onPlayBot,
   copied,
@@ -78,6 +80,8 @@ function Lobby({
   room: RoomView;
   now: number;
   busy: boolean;
+  /** An interstitial is covering the lobby. */
+  locked: boolean;
   onReady: () => void;
   onPlayBot: () => void;
   copied: boolean;
@@ -150,7 +154,9 @@ function Lobby({
         </div>
         <button
           className="button primary full"
-          disabled={busy || (me.ready && !canPlayWithBot(room, room.selfId))}
+          disabled={
+            busy || locked || (me.ready && !canPlayWithBot(room, room.selfId))
+          }
           onClick={canPlayWithBot(room, room.selfId) ? onPlayBot : onReady}
         >
           {canPlayWithBot(room, room.selfId)
@@ -234,6 +240,7 @@ export function RoomGame({ code }: { code: string }) {
   const me = room?.players.find((p) => p.id === room.selfId);
   const opponent = room?.players.find((p) => p.id !== room.selfId);
   const phase = room?.match.phase;
+  const adShowing = useLobbyAd(code, phase === 'lobby' && !!me && !me.ready);
   const phrases = room?.game === 'phrases';
   const template = room?.match.phraseTemplate;
   const wordLength = room?.wordLength ?? 5;
@@ -474,6 +481,7 @@ export function RoomGame({ code }: { code: string }) {
             room={room}
             now={now}
             busy={busy}
+            locked={adShowing}
             onReady={() => void act({ type: 'ready' })}
             onPlayBot={() => void act({ type: 'play-bot' })}
             copied={copied}

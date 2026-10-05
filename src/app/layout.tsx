@@ -7,11 +7,11 @@ import '@fontsource/space-grotesk/500.css';
 import '@fontsource/space-grotesk/600.css';
 import '@fontsource/space-grotesk/700.css';
 import './globals.css';
+import { AdsScript } from '@/components/ads-script';
 export const metadata: Metadata = {
   title: 'LetterLane — A little friendly wordplay',
   description:
     'One hidden word. Two curious minds. A private, real-time word game for friends.',
-  robots: { index: false, follow: false },
 };
 export default function RootLayout({
   children,
@@ -20,7 +20,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <AdsScript />
+      </body>
     </html>
   );
 }
