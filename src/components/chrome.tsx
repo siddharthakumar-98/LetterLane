@@ -5,6 +5,7 @@ import brandLogo from '@/app/icon.jpg';
 import type { GameKind, WordLength, PhraseDifficulty } from '@/lib/game/types';
 import { WORD_LEVELS } from '@/lib/game/word-length';
 import { PHRASE_LEVELS } from '@/lib/game/phrase-difficulty';
+import { SITE_LINKS } from '@/lib/site-links';
 import { PhraseInstructions } from './phrase-instructions';
 import { memo, useRef } from 'react';
 import { ArrowUpRight, HelpCircle, X } from 'lucide-react';
@@ -137,12 +138,15 @@ export function Header({
   children,
   game = 'words',
   showGameSwitch = true,
+  markCurrent = true,
   wordLength = 5,
   phraseDifficulty = 'normal',
 }: {
   children?: React.ReactNode;
   game?: GameKind;
   showGameSwitch?: boolean;
+  /** Content pages link to both games without marking either as current. */
+  markCurrent?: boolean;
   wordLength?: WordLength;
   phraseDifficulty?: PhraseDifficulty;
 }) {
@@ -154,14 +158,16 @@ export function Header({
           <Link
             href="/"
             aria-label="Letterlane Words"
-            aria-current={game === 'words' ? 'page' : undefined}
+            aria-current={markCurrent && game === 'words' ? 'page' : undefined}
           >
             Words
           </Link>
           <Link
             href="/phrases"
             aria-label="Letterlane Phrases"
-            aria-current={game === 'phrases' ? 'page' : undefined}
+            aria-current={
+              markCurrent && game === 'phrases' ? 'page' : undefined
+            }
           >
             Phrases
           </Link>
@@ -189,10 +195,14 @@ export const Footer = memo(function Footer({
 }) {
   return (
     <footer className="site-footer">
-      <span>
-        A little friendly wordplay. <span aria-hidden="true">/</span>
-        <Link href="/privacy">Privacy</Link>
-      </span>
+      <span>A little friendly wordplay.</span>
+      <nav className="footer-links" aria-label="Site">
+        {SITE_LINKS.map(({ href, label }) => (
+          <Link key={href} href={href}>
+            {label}
+          </Link>
+        ))}
+      </nav>
       <span>
         2 players <span aria-hidden="true">/</span>{' '}
         {game === 'phrases'

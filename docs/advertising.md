@@ -27,7 +27,7 @@ Each player's clock starts when the three-second countdown ends. The interstitia
 
 ## Setup
 
-1. **Domain and content.** Deploy publicly (Vercel per the README). `/`, `/phrases` and `/privacy` are now indexable; room pages remain `noindex`. AdSense reviews sites for original, useful content, and a thin landing page can delay approval.
+1. **Domain and content.** Deploy the production site on its real domain over HTTPS (Vercel per the README) before applying; never submit a preview deployment. See the readiness checklist below.
 2. **AdSense account.** Sign up at adsense.google.com, add the site, and complete review. The publisher ID `ca-pub-6747177342720865` is already built in, so the verification code is on every page of a production deployment.
 3. **Display unit.** In AdSense → Ads → By ad unit, create a responsive **Display** unit and copy its numeric `data-ad-slot`.
 4. **Consent (required for EEA, UK and Switzerland).** In AdSense → Privacy & messaging, publish a **European regulations** message (Google's certified, IAB TCF CMP) and a **US state regulations** message. They load with the same AdSense tag; no other vendor is needed. `/privacy` has a **Privacy and cookie settings** button that reopens the consent message.
@@ -43,6 +43,26 @@ Each player's clock starts when the three-second countdown ends. The interstitia
 
 7. **ads.txt.** Served at `/ads.txt` from the publisher ID. Confirm AdSense reports it as authorized.
 8. **Privacy page.** `/privacy` is a draft. Review it for your jurisdiction and add a contact method before launch.
+
+## AdSense readiness checklist
+
+Checked against Google's [site connection](https://support.google.com/adsense/answer/7584263) and [content](https://support.google.com/adsense/answer/7299563) guidance:
+
+| Requirement                                                  | LetterLane                                                                                                                                            |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Site code between `<head>` tags on pages with content        | Every production page, verified by `tests/e2e/site-pages.spec.ts`                                                                                     |
+| Live, public, no login                                       | Home, Phrases, How to play, About, FAQ and Privacy need no account                                                                                    |
+| Original, substantive content                                | `/how-to-play` (full rules with live-scored examples), `/about` (purpose, fair play, sources, independence), `/faq` (12 answers); each over 400 words |
+| Clear navigation, no broken pages                            | Header Words/Phrases switch, footer links to all four content pages on every page, internal-link crawl in the e2e test, real 404 page                 |
+| Crawler not blocked                                          | `/robots.txt` allows everything except `/room/` and `/api/`, and explicitly allows `Mediapartners-Google` site-wide                                   |
+| Sitemap                                                      | `/sitemap.xml` lists the six public pages                                                                                                             |
+| Privacy policy with Google ad-cookie disclosure and opt-outs | `/privacy` (draft: add a contact method and review before launch)                                                                                     |
+| Consent for EEA, UK, Switzerland                             | Publish Google's European and US state messages in AdSense → Privacy & messaging                                                                      |
+| ads.txt                                                      | `/ads.txt` returns `google.com, pub-6747177342720865, DIRECT, f08c47fec0942fa0`                                                                       |
+| Room pages                                                   | Not monetized with display units and `noindex`; only the optional lobby interstitial                                                                  |
+| Production HTTPS                                             | Provided by the hosting platform; confirm `https://<domain>/ads.txt` and `https://<domain>/robots.txt` before applying                                |
+
+Set `SITE_URL=https://<your-domain>` in production so `robots.txt` and the sitemap always name the canonical domain; without it they use the requesting host.
 
 ## Content-Security-Policy
 
