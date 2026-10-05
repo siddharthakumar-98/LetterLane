@@ -21,8 +21,17 @@ const env = (): AdsEnv => ({
   NEXT_PUBLIC_ADSENSE_H5: process.env.NEXT_PUBLIC_ADSENSE_H5,
   NEXT_PUBLIC_ADSENSE_TEST: process.env.NEXT_PUBLIC_ADSENSE_TEST,
 });
-export function getAdsConfig(values: AdsEnv = env()): AdsConfig | null {
-  const client = values.NEXT_PUBLIC_ADSENSE_CLIENT?.trim() ?? '';
+/** LetterLane's AdSense publisher ID: a public identifier, not a secret. */
+export const ADSENSE_CLIENT = 'ca-pub-6747177342720865';
+/** Production builds use LetterLane's publisher ID unless the variable overrides
+ * it; `off` (or any invalid value) disables ads. Development stays ad-free. */
+export function getAdsConfig(
+  values: AdsEnv = env(),
+  production = process.env.NODE_ENV === 'production',
+): AdsConfig | null {
+  const client =
+    values.NEXT_PUBLIC_ADSENSE_CLIENT?.trim() ||
+    (production ? ADSENSE_CLIENT : '');
   if (!/^ca-pub-\d{10,20}$/.test(client)) return null;
   const slot = values.NEXT_PUBLIC_ADSENSE_HOME_SLOT?.trim() ?? '';
   return {

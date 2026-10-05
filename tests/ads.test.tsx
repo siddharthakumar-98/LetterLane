@@ -2,7 +2,11 @@
 import { StrictMode } from 'react';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { contentSecurityPolicy, getAdsConfig } from '../src/lib/ads-config';
+import {
+  ADSENSE_CLIENT,
+  contentSecurityPolicy,
+  getAdsConfig,
+} from '../src/lib/ads-config';
 import { AD_BREAK_TIMEOUT_MS, adBreak } from '../src/lib/client/ads';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AdSlot, LOBBY_LOCK_LIMIT_MS } from '../src/components/ads';
@@ -59,6 +63,21 @@ it('keeps ads off unless the publisher ID is valid', () => {
     h5: true,
     test: true,
   });
+});
+
+it('uses LetterLane’s publisher ID in production builds unless overridden or turned off', () => {
+  expect(ADSENSE_CLIENT).toBe('ca-pub-6747177342720865');
+  expect(getAdsConfig({}, false)).toBeNull();
+  expect(getAdsConfig({}, true)?.client).toBe(ADSENSE_CLIENT);
+  expect(getAdsConfig({ NEXT_PUBLIC_ADSENSE_CLIENT: '' }, true)?.client).toBe(
+    ADSENSE_CLIENT,
+  );
+  expect(
+    getAdsConfig({ NEXT_PUBLIC_ADSENSE_CLIENT: CLIENT }, true)?.client,
+  ).toBe(CLIENT);
+  expect(getAdsConfig({ NEXT_PUBLIC_ADSENSE_CLIENT: 'off' }, true)).toBeNull();
+  // The default enables only the site tag; slots and the lobby ad stay opt-in.
+  expect(getAdsConfig({}, true)).toMatchObject({ homeSlot: null, h5: false });
 });
 
 it('leaves the security policy unchanged without ads and admits Google with them', () => {
