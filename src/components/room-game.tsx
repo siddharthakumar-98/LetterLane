@@ -240,7 +240,7 @@ export function RoomGame({ code }: { code: string }) {
   const me = room?.players.find((p) => p.id === room.selfId);
   const opponent = room?.players.find((p) => p.id !== room.selfId);
   const phase = room?.match.phase;
-  const adShowing = useLobbyAd(code, phase === 'lobby' && !!me && !me.ready);
+  const adLock = useLobbyAd(code, phase === 'lobby' && !!me && !me.ready);
   const phrases = room?.game === 'phrases';
   const template = room?.match.phraseTemplate;
   const wordLength = room?.wordLength ?? 5;
@@ -481,7 +481,7 @@ export function RoomGame({ code }: { code: string }) {
             room={room}
             now={now}
             busy={busy}
-            locked={adShowing}
+            locked={adLock}
             onReady={() => void act({ type: 'ready' })}
             onPlayBot={() => void act({ type: 'play-bot' })}
             copied={copied}
