@@ -60,7 +60,9 @@ for (const [length, level, answer, guess] of [
     await expect(page.locator('.your-lane .board .tile')).toHaveCount(
       length * 6,
     );
-    await expect(page.locator('.masked-tile')).toHaveCount(length * 6);
+    await expect(
+      page.locator('.masked-row').first().locator('.masked-tile'),
+    ).toHaveCount(length);
     const before = await snapshot();
     // Bypass the UI to verify that the room's length is authoritative.
     const invalid = await page.evaluate(

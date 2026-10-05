@@ -124,8 +124,9 @@ test('two guests create, join, ready, play concurrently, reconnect, finish and r
       'masked-tile absent',
       'masked-tile correct',
     ]);
+    // One played row plus the pending row; letters stay hidden.
     expect(await page.locator('.masked-tile').allTextContents()).toEqual(
-      Array(30).fill(''),
+      Array(10).fill(''),
     );
     expect(masked.players[0].timerEndsAt - masked.match.startsAt).toBe(130000);
     expect(masked.players[1].timerEndsAt - masked.match.startsAt).toBe(130000);
