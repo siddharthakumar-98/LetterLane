@@ -189,7 +189,10 @@ export const Footer = memo(function Footer({
 }) {
   return (
     <footer className="site-footer">
-      <span>A little friendly wordplay.</span>
+      <span>
+        A little friendly wordplay. <span aria-hidden="true">/</span>
+        <Link href="/privacy">Privacy</Link>
+      </span>
       <span>
         2 players <span aria-hidden="true">/</span>{' '}
         {game === 'phrases'

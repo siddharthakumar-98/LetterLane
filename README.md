@@ -176,6 +176,11 @@ Regression tests exercise the real Postgres.js driver over a local PGlite socket
 - Only an answer-free revision counter is published to Realtime. Opponent guesses and the answer do not appear in active JSON responses, page props, browser bundles, or log messages. Database errors are never returned or logged verbatim.
 - Mutations require same-origin requests, limit the JSON body to 2 KiB while reading, validate a strict action schema, and enforce per-identity database-backed limits (12 room creations/hour; 180 room requests/minute; a separate 60 phrase-word validation requests/minute). Room-rule rejections also count toward the room request limit. Supabase Auth handles initial guest-signup abuse limits; consider its CAPTCHA option if abuse becomes a problem.
 - API responses disable caching and vary on cookie/authorization. Browser security headers prevent framing and MIME sniffing. CSP permits Next's inline scripts/styles; `unsafe-eval` is restricted to development. For a tighter public deployment, use per-request CSP nonces and remove inline allowances as a separate hardening step.
+- Optional Google ads run as third-party scripts on the page. When enabled, the CSP admits only Google's AdSense, consent and H5 Games Ads hosts; without ad configuration the CSP is unchanged. The hidden answer and opponent letters are never sent to the browser during play, so ad scripts cannot read them, and no player identifiers are passed to Google.
+
+## Advertising
+
+Google AdSense support is built in and **off by default**. Setting `NEXT_PUBLIC_ADSENSE_CLIENT` (and `NEXT_PUBLIC_ADSENSE_HOME_SLOT`) shows one responsive display unit below the Words and Phrases home content. After H5 Games Ads approval, `NEXT_PUBLIC_ADSENSE_H5=1` adds Google's closable interstitial when a player opens a room lobby. It appears only before that player is ready, at most once per room per browser session, so it can never start a countdown or cost game time. `/ads.txt` and a draft `/privacy` page are served; `/`, `/phrases` and `/privacy` are indexable while room pages remain `noindex`. EEA/UK/Swiss traffic requires Google's certified consent message, configured in AdSense → Privacy & messaging. Vendor research, setup, CSP details and testing are in [docs/advertising.md](docs/advertising.md). No migration or server change is required.
 
 ## Words difficulty
 

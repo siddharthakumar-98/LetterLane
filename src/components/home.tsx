@@ -18,6 +18,7 @@ import {
   Swords,
 } from 'lucide-react';
 import { Header, Footer } from './chrome';
+import { AdSlot } from './ads';
 import { api, ApiError } from '@/lib/client/api';
 import { codeSchema, nameSchema } from '@/lib/game/validation';
 import type {
@@ -367,6 +368,7 @@ export default function Home({ game = 'words' }: { game?: GameKind }) {
               needed.
             </p>
           </div>
+          <AdSlot className="home-support" />
         </section>
       </main>
       <Footer
