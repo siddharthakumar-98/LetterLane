@@ -80,7 +80,7 @@ function Lobby({
   room: RoomView;
   now: number;
   busy: boolean;
-  /** An interstitial is covering the lobby. */
+  /** An interstitial placement is pending or showing. */
   locked: boolean;
   onReady: () => void;
   onPlayBot: () => void;
@@ -240,7 +240,10 @@ export function RoomGame({ code }: { code: string }) {
   const me = room?.players.find((p) => p.id === room.selfId);
   const opponent = room?.players.find((p) => p.id !== room.selfId);
   const phase = room?.match.phase;
-  const adLock = useLobbyAd(code, phase === 'lobby' && !!me && !me.ready);
+  const { locked: adLock, beginPlay } = useLobbyAd(
+    code,
+    phase === 'lobby' && !!me && !me.ready,
+  );
   const phrases = room?.game === 'phrases';
   const template = room?.match.phraseTemplate;
   const wordLength = room?.wordLength ?? 5;
@@ -482,8 +485,12 @@ export function RoomGame({ code }: { code: string }) {
             now={now}
             busy={busy}
             locked={adLock}
-            onReady={() => void act({ type: 'ready' })}
-            onPlayBot={() => void act({ type: 'play-bot' })}
+            onReady={() => {
+              if (beginPlay()) void act({ type: 'ready' });
+            }}
+            onPlayBot={() => {
+              if (beginPlay()) void act({ type: 'play-bot' });
+            }}
             copied={copied}
             onCopy={() => void copy()}
           />

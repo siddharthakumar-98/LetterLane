@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { StrictMode } from 'react';
-import { act, cleanup, render, screen } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
   ADSENSE_CLIENT,
@@ -8,12 +14,12 @@ import {
   getAdsConfig,
 } from '../src/lib/ads-config';
 import {
-  AD_BREAK_TIMEOUT_MS,
+  ADS_READY_TIMEOUT_MS,
   ADS_READY_EVENT,
   adBreak,
 } from '../src/lib/client/ads';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { AdSlot, LOBBY_LOCK_LIMIT_MS } from '../src/components/ads';
+import { AdSlot } from '../src/components/ads';
 import { AdsScript } from '../src/components/ads-script';
 import { RoomGame } from '../src/components/room-game';
 import { GET as adsTxt } from '../src/app/ads.txt/route';
@@ -156,26 +162,26 @@ it('renders no slot when ads are off, and requests a configured slot once', () =
   expect(window.adsbygoogle).toEqual([{}]);
 });
 
-it('resolves ad breaks when unavailable, answered or silently blocked', async () => {
+it('does not queue uninitialized ad breaks and waits for submitted placements to finish', async () => {
   await expect(adBreak('start', 'lobby')).resolves.toBe('unavailable');
+  window.letterlaneAdsReady = false;
+  window.adBreak = vi.fn();
+  await expect(adBreak('start', 'lobby')).resolves.toBe('unavailable');
+  expect(window.adBreak).not.toHaveBeenCalled();
+  window.letterlaneAdsReady = true;
   window.adBreak = (options) =>
     options.adBreakDone?.({ breakStatus: 'viewed' });
   await expect(adBreak('start', 'lobby')).resolves.toBe('viewed');
   vi.useFakeTimers();
-  window.adBreak = () => {}; // Queued by the inline stub, never answered.
-  const blocked = adBreak('start', 'lobby');
-  vi.advanceTimersByTime(AD_BREAK_TIMEOUT_MS);
-  await expect(blocked).resolves.toBe('timeout');
   let done: ((p: { breakStatus: string }) => void) | undefined;
   window.adBreak = (options) => {
-    options.beforeAd?.();
     done = options.adBreakDone;
   };
   let settled = '';
   void adBreak('start', 'lobby').then((status) => (settled = status));
-  vi.advanceTimersByTime(AD_BREAK_TIMEOUT_MS * 4);
+  vi.advanceTimersByTime(120000);
   await Promise.resolve();
-  expect(settled).toBe(''); // A showing ad is never cut short.
+  expect(settled).toBe(''); // Even an ad that has not appeared is still pending.
   done!({ breakStatus: 'dismissed' });
   await vi.waitFor(() => expect(settled).toBe('dismissed'));
 });
@@ -216,7 +222,7 @@ it('shows the lobby interstitial once per room and locks readiness while it is u
   act(() => calls[0].beforeAd!());
   expect(ready().disabled).toBe(true);
   act(() => calls[0].afterAd!());
-  expect(ready().disabled).toBe(false);
+  expect(ready().disabled).toBe(true);
   await act(async () => calls[0].adBreakDone!({ breakStatus: 'viewed' }));
   expect(ready().disabled).toBe(false);
   rerender(<RoomGame code="LOBBY1" />);
@@ -225,18 +231,27 @@ it('shows the lobby interstitial once per room and locks readiness while it is u
   expect(calls).toHaveLength(1);
   expect(sessionStorage.getItem('letterlane-ad-lobby:LOBBY1')).toBe('1');
 });
-it('releases the lobby lock if the close callback never arrives', () => {
+it('keeps readiness locked through delayed placement callbacks, beyond both former timeouts', async () => {
   vi.useFakeTimers();
   enableAds();
   const calls: Parameters<NonNullable<Window['adBreak']>>[0][] = [];
   window.adBreak = (options) => calls.push(options);
   show(lobby());
   render(<RoomGame code="LOBBY4" />);
-  act(() => calls[0].beforeAd!());
   const ready = () =>
     screen.getByRole('button', { name: /I’m ready/ }) as HTMLButtonElement;
   expect(ready().disabled).toBe(true);
-  act(() => vi.advanceTimersByTime(LOBBY_LOCK_LIMIT_MS));
+  const submit = vi.mocked(useRoom).getMockImplementation()!('LOBBY4').act;
+  await act(async () => vi.advanceTimersByTime(120000));
+  expect(ready().disabled).toBe(true);
+  fireEvent.click(ready());
+  expect(submit).not.toHaveBeenCalled();
+  act(() => calls[0].beforeAd!());
+  await act(async () => vi.advanceTimersByTime(120000));
+  expect(ready().disabled).toBe(true);
+  act(() => calls[0].afterAd!());
+  expect(ready().disabled).toBe(true);
+  await act(async () => calls[0].adBreakDone!({ breakStatus: 'viewed' }));
   expect(ready().disabled).toBe(false);
 });
 it('unlocks at once when Google has no ad for the lobby', async () => {
@@ -284,6 +299,83 @@ it('waits for Google to be ready, and skips the ad once the player has readied',
     window.dispatchEvent(new Event(ADS_READY_EVENT));
   });
   expect(calls).toHaveLength(1);
+});
+it.each(['ready', 'play-bot'] as const)(
+  'skips late initialization as soon as %s is submitted, before the server responds',
+  (type) => {
+    enableAds();
+    window.letterlaneAdsReady = false;
+    window.adBreak = vi.fn();
+    const room = lobby(type === 'play-bot');
+    if (type === 'play-bot') room.players = [room.players[0]];
+    show(room);
+    const state = vi.mocked(useRoom).getMockImplementation()!('pending');
+    const submit = vi.fn(() => {
+      // Fire before React can render busy or a new server snapshot.
+      window.letterlaneAdsReady = true;
+      window.dispatchEvent(new Event(ADS_READY_EVENT));
+      return new Promise<boolean>(() => {});
+    });
+    vi.mocked(useRoom).mockReturnValue({ ...state, act: submit });
+    const code = `PENDING-${type}`;
+    const view = render(<RoomGame code={code} />);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: type === 'ready' ? /I’m ready/ : 'Play with bot',
+      }),
+    );
+    expect(submit).toHaveBeenCalledWith({ type });
+    expect(window.adBreak).not.toHaveBeenCalled();
+    // A stale unready snapshot after a failed/ambiguous response cannot retry
+    // the ad, including after navigation back to the same room.
+    view.unmount();
+    show(lobby());
+    render(<RoomGame code={code} />);
+    expect(window.adBreak).not.toHaveBeenCalled();
+  },
+);
+it('blocks Ready synchronously when initialization wins the race', async () => {
+  enableAds();
+  window.letterlaneAdsReady = false;
+  const calls: Parameters<NonNullable<Window['adBreak']>>[0][] = [];
+  window.adBreak = (options) => calls.push(options);
+  show(lobby());
+  const submit = vi.mocked(useRoom).getMockImplementation()!('race').act;
+  render(<RoomGame code="AD-WINS-RACE" />);
+  const ready = screen.getByRole('button', { name: /I’m ready/ });
+  act(() => {
+    window.letterlaneAdsReady = true;
+    window.dispatchEvent(new Event(ADS_READY_EVENT));
+    fireEvent.click(ready);
+  });
+  expect(calls).toHaveLength(1);
+  expect(submit).not.toHaveBeenCalled();
+  await act(async () =>
+    calls[0].adBreakDone!({ breakStatus: 'noAdPreloaded' }),
+  );
+  fireEvent.click(ready);
+  expect(submit).toHaveBeenCalledWith({ type: 'ready' });
+});
+it('skips a slow or blocked API before requesting a placement', () => {
+  vi.useFakeTimers();
+  enableAds();
+  window.letterlaneAdsReady = false;
+  window.adBreak = vi.fn();
+  show(lobby());
+  const view = render(<RoomGame code="INIT-TIMEOUT" />);
+  act(() => vi.advanceTimersByTime(ADS_READY_TIMEOUT_MS));
+  expect(
+    (screen.getByRole('button', { name: /I’m ready/ }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(false);
+  act(() => {
+    window.letterlaneAdsReady = true;
+    window.dispatchEvent(new Event(ADS_READY_EVENT));
+  });
+  expect(window.adBreak).not.toHaveBeenCalled();
+  view.unmount();
+  render(<RoomGame code="INIT-TIMEOUT" />);
+  expect(window.adBreak).not.toHaveBeenCalled();
 });
 it('never interrupts a ready player, a started match or a site without H5 ads', () => {
   const calls: unknown[] = [];

@@ -21,30 +21,28 @@ declare global {
 }
 /** Dispatched on window by the inline H5 setup from adConfig's onReady. */
 export const ADS_READY_EVENT = 'letterlane-ads-ready';
-/** The queue never answers when the script is blocked, so give up quietly. */
-export const AD_BREAK_TIMEOUT_MS = 5000;
+/** Stop waiting for initialization before submitting any placement. */
+export const ADS_READY_TIMEOUT_MS = 5000;
 export function adBreak(
   type: AdBreakOptions['type'],
   name: string,
   hooks: { beforeAd?: () => void; afterAd?: () => void } = {},
 ): Promise<string> {
-  if (typeof window === 'undefined' || typeof window.adBreak !== 'function')
+  if (
+    typeof window === 'undefined' ||
+    !window.letterlaneAdsReady ||
+    typeof window.adBreak !== 'function'
+  )
     return Promise.resolve('unavailable');
   return new Promise((resolve) => {
-    let started = false;
-    const timer = setTimeout(() => {
-      if (!started) resolve('timeout');
-    }, AD_BREAK_TIMEOUT_MS);
+    // A submitted placement cannot be cancelled by a local timeout. Wait for
+    // Google's terminal callback, including when it decides not to show an ad.
     window.adBreak!({
       type,
       name,
-      beforeAd: () => {
-        started = true;
-        hooks.beforeAd?.();
-      },
+      beforeAd: () => hooks.beforeAd?.(),
       afterAd: () => hooks.afterAd?.(),
       adBreakDone: (placement) => {
-        clearTimeout(timer);
         resolve(placement?.breakStatus ?? 'other');
       },
     });
