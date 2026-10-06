@@ -23,7 +23,11 @@ Sources: [H5 Games Ads](https://adsense.google.com/start/solutions/h5-games-ads/
 
 ## Fairness: the lobby interstitial never costs game time
 
-Each player's clock starts when the three-second countdown ends. The interstitial is requested only while the player is **in the lobby and not yet ready**. The request is made only after Google's API reports it is ready (`adConfig` `onReady`), so a queued request can never surface later; if the API is not ready while the player is still unready, that lobby has no ad. A countdown needs that player's own **I'm ready** or **Play with bot** action, and those controls are disabled from the request until Google reports the break done, so a match cannot start underneath the ad. It is requested at most once per room per browser session (`sessionStorage` key `letterlane-ad-lobby:<code>`, plus an in-memory guard when storage is unavailable). Google applies its own frequency cap (`data-ad-frequency-hint="120s"`). Rematches go straight from results to the countdown and never show it. A blocked script never becomes ready, so the lobby is untouched. If Google ever misses its close callback, the controls unlock after 60 seconds; the ad itself still covers the page until it is closed. No game rule, server, API, polling or database change is involved.
+Each player's clock starts when the three-second countdown ends. The interstitial is requested only while the player is **in the lobby and not yet ready**, after Google's API reports it is initialized (`adConfig` `onReady`). If initialization takes more than five seconds, the ad is skipped without submitting a placement. **I'm ready** and **Play with bot** synchronously skip the room's ad before sending their server request, so a late initialization event cannot overlap an in-flight readiness action.
+
+Once an ad placement is submitted, both controls stay locked until Google's `adBreakDone` callback, including no-fill responses. There is no timeout after submission: a local timer cannot cancel Google's pending placement. If the initialized API fails to report completion, the lobby remains locked; reloading discards that document's placement, and the session guard skips the ad on return. See Google's [initialization and timeout guidance](https://developers.google.com/ad-placement/docs/manual-sequence).
+
+The ad is requested at most once per room per browser session (`sessionStorage` key `letterlane-ad-lobby:<code>`, plus an in-memory guard when storage is unavailable). Google applies its own frequency cap (`data-ad-frequency-hint="120s"`). Rematches go straight from results to the countdown and never show it. A blocked script never becomes ready, so gameplay remains available. No game rule, server, API, polling or database change is involved.
 
 ## Setup
 
@@ -76,5 +80,5 @@ Ad scripts run on the page and can read the DOM, as with any third-party tag. Th
 
 ## Testing
 
-- Automated: `tests/ads.test.tsx` covers configuration, CSP, `ads.txt`, the display slot, ad-break timeouts and the lobby lock. The browser suite runs with ads off.
+- Automated: `tests/ads.test.tsx` covers configuration, CSP, `ads.txt`, the display slot, initialization timeouts, delayed callbacks and races between ad initialization and readiness actions. The browser suite runs with ads off.
 - Manual: set the variables above with `NEXT_PUBLIC_ADSENSE_TEST=1`, run `pnpm build && pnpm start`, and check the home slot, lobby interstitial (H5 test ads), the console for CSP violations, and 1280px/390px layouts. Test ads may not fill until AdSense has reviewed the domain; localhost often receives no fill.

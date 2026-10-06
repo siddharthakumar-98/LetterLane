@@ -1,7 +1,11 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { getAdsConfig } from '@/lib/ads-config';
-import { ADS_READY_EVENT, adBreak } from '@/lib/client/ads';
+import {
+  ADS_READY_EVENT,
+  ADS_READY_TIMEOUT_MS,
+  adBreak,
+} from '@/lib/client/ads';
 
 /** A responsive display unit with a reserved, labelled space. */
 export function AdSlot({ className = '' }: { className?: string }) {
@@ -46,38 +50,48 @@ function claimLobbyAd(code: string) {
   }
   return true;
 }
-/** Google's closable interstitial when the lobby opens, at most once per room
- * per browser session. Only an unready player is eligible, and readiness is
- * locked from the request until Google reports the break done, so the
- * countdown (which needs their own Ready or Play with bot) cannot start beneath
- * it. The break is requested only once Google's API is ready and has preloaded,
- * so a queued request cannot surface after the player has moved on; if the API
- * is not ready while the player is still eligible, the lobby has no ad. */
+/** Request at most one lobby ad per room/session. Starting play and requesting
+ * an ad share a synchronous gate; an issued placement holds it until complete.
+ * If initialization takes too long, skip the ad before submitting a placement. */
 export function useLobbyAd(code: string, eligible: boolean) {
   const [locked, setLocked] = useState(false);
+  const pending = useRef(false);
+  const beginPlay = () => {
+    if (pending.current) return false;
+    // Skip this room's ad before sending Ready/Play with bot, even if the server
+    // response is delayed or lost. A later onReady event must not request it.
+    claimLobbyAd(code);
+    return true;
+  };
   useEffect(() => {
     if (!eligible || !getAdsConfig()?.h5) return;
     const request = () => {
-      if (!claimLobbyAd(code)) return;
-      // Never leave the lobby locked if Google misses its callbacks.
-      const release = setTimeout(() => setLocked(false), LOBBY_LOCK_LIMIT_MS);
+      if (pending.current || !claimLobbyAd(code)) return;
+      pending.current = true;
       const done = () => {
-        clearTimeout(release);
+        pending.current = false;
         setLocked(false);
       };
       setLocked(true);
-      void adBreak('start', 'lobby', {
-        beforeAd: () => setLocked(true),
-        afterAd: done,
-      }).then(done);
+      void adBreak('start', 'lobby').then(done, done);
     };
     if (window.letterlaneAdsReady) {
       request();
       return;
     }
-    window.addEventListener(ADS_READY_EVENT, request, { once: true });
-    return () => window.removeEventListener(ADS_READY_EVENT, request);
+    const onReady = () => {
+      clearTimeout(timeout);
+      request();
+    };
+    const timeout = setTimeout(() => {
+      claimLobbyAd(code);
+      window.removeEventListener(ADS_READY_EVENT, onReady);
+    }, ADS_READY_TIMEOUT_MS);
+    window.addEventListener(ADS_READY_EVENT, onReady, { once: true });
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener(ADS_READY_EVENT, onReady);
+    };
   }, [code, eligible]);
-  return locked;
+  return { locked, beginPlay };
 }
-export const LOBBY_LOCK_LIMIT_MS = 60000;

@@ -1,4 +1,6 @@
-# LetterLane v2.2
+# LetterLane v3.0
+
+**Current version: v3.0 — Ad-ready LetterLane.**
 
 A private multiplayer guessing game with two puzzle types: **Words** (five-, six-, or seven-letter words) and **Phrases** (sayings of up to seven words). Play a friendly duel or work toward a shared co-op win, with a friend or a bot. Both puzzle types share rooms, six-guess rounds, personal clocks, private guesses, saved progress, and rematches.
 
@@ -6,9 +8,135 @@ Built with Next.js App Router, strict TypeScript, React, Tailwind CSS, Supabase 
 
 ## Version history
 
-These milestones group the delivered features in the repository history. [CHANGELOG.md](CHANGELOG.md) retains the detailed v1.1 release notes.
+These milestones group related changes from all local and remote branch histories. Versions v2.3–v3.0 are retrospective milestones, with approximate dates from commit timestamps rather than release tags. There are no version tags; the baseline is `cabdb1e` (September 26, 2026), which first documented v2.2. Merge commits and changes without a user-facing effect are omitted. [CHANGELOG.md](CHANGELOG.md) retains the detailed v1.1 release notes.
 
-### v2.2 — Current: phrase validation and live feedback
+**Branch status at the October 5 review:** `init-ads` contains the v3.0 follow-up fix `2975ae3`, which is not yet in `origin/main` at `42670db`. The legacy `feature/bot-opponents` (`6ba856a`, `127a2a8`) and `feature/timer` (`abff0ba`) branches also contain commits absent from `origin/main`, but all predate v2.2 and are not counted as new v2.3–v3.0 work. All other reviewed branch tips are ancestors of `origin/main`; local `main` is stale, so merge status uses the remote-tracking branch.
+
+### v3.0 — Current: ad-ready LetterLane — October 5, 2026
+
+Prepare LetterLane for optional advertising with privacy controls, documented placements, and safer lobby timing, building on the performance work in v2.7.
+
+Commits: `d9726c0`, `e61f824`, `e037beb`, `41ffe46`, `218340c`, `2975ae3`.
+
+**Added**
+
+- Integrate the AdSense site tag, one optional responsive display unit below each home page's content, and an optional Google H5 Games Ads lobby interstitial.
+- Add `/privacy`, consent-choice controls, Google cookie and data-use disclosures, and the privacy contact `siddukumar321@gmail.com`.
+- Add original How to play, About and FAQ pages, shared footer navigation, `ads.txt`, `robots.txt`, and a sitemap. Keep private room pages out of search indexing.
+- Document publisher, placement, test-ad and canonical-origin configuration, consent setup, approval requirements, and browser checks.
+
+**Changed**
+
+- Include LetterLane's publisher tag by default in production while keeping development ad-free unless explicitly configured. Display units and H5 placements remain opt-in; the CSP allows the Google hosts needed by the integration.
+- Replace the NYT-derived five-letter guess list with 6,829 SCOWL entries, retaining all 825 answers and recording the pinned source, rebuild script, checksum and license notice.
+- Clarify guest identities, room retention, browser storage, third-party scripts, European consent controls and US state opt-outs in the privacy wording.
+
+**Fixed**
+
+- Close lobby-ad eligibility synchronously before sending Ready or Play with bot, preventing late initialization from overlapping an in-flight readiness request.
+- Apply the ad-loading timeout before submitting a placement. Once submitted, keep readiness locked until Google's completion callback instead of releasing it on a local timer; cover both races with regression tests.
+
+Ad-ready describes the integration and setup, not Google approval or a legal compliance guarantee. Consent publication and ad approvals are managed separately in AdSense; the final timing fix above is still pending merge into `main` at this review snapshot.
+
+### v2.9 — Focused in-game feedback — October 5, 2026
+
+Show played guesses and the next attempt without filling the screen with future rows.
+
+Commits: `ea90182`, `f7ddd35`.
+
+**Changed**
+
+- Show opponent feedback as played rows plus one pending row, removing the pending row once the opponent finishes.
+- Mirror player-bar alignment so each player's identity, status and clock stay associated with the corresponding lane.
+
+**Fixed**
+
+- Stop Words from displaying all six empty rows during play. Show accepted guesses plus the current row, and stop adding a row after a solve, timeout or final attempt.
+
+### v2.8 — A compact, responsive interface — October 4, 2026
+
+Bring setup and gameplay into tighter layouts while keeping instructions and both players' clocks accessible.
+
+Commits: `7336e47`, `537b489`.
+
+**Added**
+
+- Add a compact sticky player bar with each player's identity, status and clock.
+
+**Changed**
+
+- Pair home-page introductions and feedback examples with setup on desktop, stack them on smaller screens, and reserve a support area for a future optional placement.
+- Reduce decorative space in lobbies, results and gameplay; align the two lanes and retain both clocks together when lanes stack on phones.
+- Show the selected word length or phrase difficulty in lobby instructions and expand responsive layout coverage.
+
+**Fixed**
+
+- Center rematch buttons and their contents on mobile results screens.
+
+### v2.7 — Less work during play — October 3, 2026
+
+Reduce repeated database, rendering and scoring work while preserving game rules and timing.
+
+Commit: `3338ab3`.
+
+**Changed**
+
+- Persist only changed room projections and append newly accepted guesses instead of rewriting unchanged history on each heartbeat.
+- Reuse unchanged snapshot data and memoize boards, keyboards and phrase metadata to avoid unnecessary work on clock ticks.
+- Use occurrence counts for phrase scoring, precompute bot candidate letters, and load the Supabase browser SDK only when hosted authentication needs it.
+
+**Fixed**
+
+- Prevent stale room responses from replacing newer revisions or moving the synchronized clock backward.
+
+### v2.6 — Phrases difficulty — October 3, 2026
+
+Choose shorter sayings or the original phrase collection independently of bot difficulty.
+
+Commit: `dd9a12d`.
+
+**Added**
+
+- Add Easy Phrases, limited to five words, alongside Normal Phrases, limited to seven words.
+- Preserve the selected difficulty through invitations, reconnects and human/bot rematches. Existing rooms default to Normal without a new database migration.
+
+### v2.5 — Words difficulty — October 2, 2026
+
+Choose five-, six- or seven-letter puzzles with matching boards, vocabulary and bots.
+
+Commit: `f592eca`.
+
+**Added**
+
+- Add Easy (five letters), Medium (six letters) and Hard (seven letters), separate from bot difficulty, with the room's choice preserved through reconnects and rematches.
+- Add curated six- and seven-letter answer pools and matching SCOWL guess vocabularies.
+
+**Changed**
+
+- Make validation, scoring, boards, results and bot choices respect the selected length while retaining six guesses and the existing clock bonuses.
+- Widen the database's Words attempt constraint to five through seven letters with a migration that preserves existing games. Older rooms and omitted settings remain five-letter games.
+
+### v2.4 — Focused room navigation — September 29, 2026
+
+A small, single-change milestone keeps the game-type selector on the home pages.
+
+Commit: `48297dc`.
+
+**Changed**
+
+- Hide the Words/Phrases switch inside rooms, including the lobby, while retaining the room's help and invitation controls.
+
+### v2.3 — Opponent progress colors — September 26, 2026
+
+See an opponent's evaluated tile colors without revealing their letters.
+
+Commit: `a0b3490`.
+
+**Added**
+
+- Show green/yellow/grey opponent feedback for Words and green/orange/blue/grey feedback grouped by word for Phrases, with accessible descriptions and privacy regression coverage.
+
+### v2.2 — Phrase validation and live feedback
 
 - Replace the permissive phrase vocabulary with a pinned, conservative SCOWL English word list, preserving contractions, hyphen handling, and every answer word. Words keeps its separate dictionary.
 - Validate completed phrase words while typing and show positional errors above the keyboard. Debounced, cached checks keep the dictionary server-side and never consult the hidden answer; submission validation remains authoritative.
@@ -76,7 +204,7 @@ cp .env.example .env.local
 pnpm dev
 ```
 
-`GAME_BACKEND=local` selects the local backend. Development defaults to local if the variable is absent. Production defaults to Supabase and fails closed if configuration is missing. Vercel always rejects local mode.
+`GAME_BACKEND=local` selects the local backend. Development defaults to local if the variable is absent. Production defaults to Supabase and fails closed if configuration is missing. Vercel always rejects local mode. The v3.0 advertising integration requires no extra local service or migration; leave the AdSense variables empty for ad-free development. See [Advertising](#advertising) for optional placement configuration.
 
 ```sh
 pnpm typecheck        # Strict TypeScript
@@ -116,6 +244,7 @@ Relevant official references: [Next.js installation](https://nextjs.org/docs/app
 2. Set `GAME_BACKEND=supabase`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `DATABASE_URL` in the appropriate Vercel environments. Leave `LOCAL_DATA_DIR` and `E2E_TEST_MODE` unset. Configure credentials separately for previews if those should use a different Supabase project.
 3. Apply the migrations to the target Supabase project first. Place the Vercel functions near your Supabase region and use the Supabase transaction pooler. The database client disables prepared statements and opens at most three connections per warm function instance.
 4. Deploy, update the Supabase application URL, and smoke-test with two real browser profiles using the deployed invitation URL. Client-visible Supabase keys are public by design; database credentials remain server-only.
+5. For v3.0 advertising, set `SITE_URL` to the canonical HTTPS origin and follow [Advertising](#advertising). Verify the European and US state consent messages in AdSense, then enable placements only after the relevant approvals. Rebuild after changing public ad configuration; leave test ads off in production.
 
 Verify hosted Supabase Auth/Realtime and the Vercel deployment against your configured project. Automated browser tests exercise the real Next API and embedded PostgreSQL backend, not a mocked game server. RLS migrations are separately executed and tested against embedded PostgreSQL with Supabase auth/realtime schema stubs; that does not substitute for testing a hosted Realtime WebSocket connection.
 
@@ -123,7 +252,7 @@ Verify hosted Supabase Auth/Realtime and the Vercel deployment against your conf
 
 - **Personal clocks:** After the countdown, each player (including bots) starts with **1:30 in Words** or **3:00 in Phrases**. An accepted Words guess adds **20 seconds** per green/yellow tile; an accepted Phrases guess adds **five seconds** per green/orange/blue tile. Duplicate occurrences earn time only when matched by scoring. Grey tiles, invalid guesses, repeated guesses, and retried requests earn no extra time.
 - Clocks keep running during disconnects. At zero a player cannot submit more guesses; the other may continue until a solve, timeout, or six attempts. If neither solves, the existing points comparison applies; co-op ends in a team loss when both are finished. Rematches reset clocks and bonuses.
-- Deadlines are derived from the shared database start time and saved evaluated guesses, under the existing room lock. Both countdowns are visible beside the opponent lane on wide screens and in a sticky strip above the board on smaller screens. Both players can see opponent guess colors and earned time, but opponent letters remain hidden until results. The other lane shows green/yellow/grey tiles for Words and green/orange/blue/grey tiles grouped by word for Phrases. Polls, heartbeats, and actions settle expired rounds; disconnected rooms settle on their next request. No background Vercel timer or new Supabase migration/environment setting is needed. Previously started rooms use the same rule against their saved start time and guesses when first accessed after deployment.
+- Deadlines are derived from the shared database start time and saved evaluated guesses, under the existing room lock. Both personal clocks appear with their players' identities in a compact sticky bar above the lanes; they remain together when the lanes stack on phones. Both players can see opponent guess colors and earned time, but opponent letters remain hidden until results. The other lane shows green/yellow/grey tiles for Words and green/orange/blue/grey tiles grouped by word for Phrases. Polls, heartbeats, and actions settle expired rounds; disconnected rooms settle on their next request. No background Vercel timer or new Supabase migration/environment setting is needed. Previously started rooms use the same rule against their saved start time and guesses when first accessed after deployment.
 
 - Both players get the same hidden puzzle—a five-, six-, or seven-letter word in Words or a phrase of up to seven words in Phrases—and six guesses each, with a shared three-second countdown.
 - **Duel:** first solve opens a **750 ms** synchronization window. Solvers within it are compared by accepted guess count, then server-recorded elapsed milliseconds. Exactly equal results draw. Once a player is solved, out of time, or out of attempts, they cannot submit again. If both are done, the server resolves immediately.
@@ -176,11 +305,27 @@ Regression tests exercise the real Postgres.js driver over a local PGlite socket
 - Only an answer-free revision counter is published to Realtime. Opponent guesses and the answer do not appear in active JSON responses, page props, browser bundles, or log messages. Database errors are never returned or logged verbatim.
 - Mutations require same-origin requests, limit the JSON body to 2 KiB while reading, validate a strict action schema, and enforce per-identity database-backed limits (12 room creations/hour; 180 room requests/minute; a separate 60 phrase-word validation requests/minute). Room-rule rejections also count toward the room request limit. Supabase Auth handles initial guest-signup abuse limits; consider its CAPTCHA option if abuse becomes a problem.
 - API responses disable caching and vary on cookie/authorization. Browser security headers prevent framing and MIME sniffing. CSP permits Next's inline scripts/styles; `unsafe-eval` is restricted to development. For a tighter public deployment, use per-request CSP nonces and remove inline allowances as a separate hardening step.
-- Optional Google ads run as third-party scripts on the page. When enabled, the CSP admits only Google's AdSense, consent and H5 Games Ads hosts; without ad configuration the CSP is unchanged. The hidden answer and opponent letters are never sent to the browser during play, so ad scripts cannot read them, and no player identifiers are passed to Google.
+- Optional Google ads run as third-party scripts on the page. When the integration is enabled, the CSP allows Google's AdSense, consent and H5 Games Ads hosts; disabling it restores the policy without those hosts. The hidden answer and opponent letters are never sent to the browser during play, so ad scripts cannot read them, and no player identifiers are passed to Google.
 
 ## Advertising
 
-Production builds include LetterLane's AdSense site code (`ca-pub-6747177342720865`) in every page's `<head>` and serve `/ads.txt`; development stays ad-free, and `NEXT_PUBLIC_ADSENSE_CLIENT=off` disables ads. Setting `NEXT_PUBLIC_ADSENSE_HOME_SLOT` shows one responsive display unit below the Words and Phrases home content. After H5 Games Ads approval, `NEXT_PUBLIC_ADSENSE_H5=1` adds Google's closable interstitial when a player opens a room lobby. It appears only before that player is ready, at most once per room per browser session, so it can never start a countdown or cost game time. `/ads.txt`, `/robots.txt`, `/sitemap.xml`, the content pages `/how-to-play`, `/about` and `/faq`, and a draft `/privacy` page are served and linked from every footer; public pages are indexable while room pages remain `noindex` and disallowed in `robots.txt`. Set `SITE_URL` to the canonical production origin. The AdSense readiness checklist is in the advertising notes. EEA/UK/Swiss traffic requires Google's certified consent message, configured in AdSense → Privacy & messaging. Vendor research, setup, CSP details and testing are in [docs/advertising.md](docs/advertising.md). No migration or server change is required.
+Production builds include LetterLane's AdSense site code (`ca-pub-6747177342720865`) in every page's `<head>` and serve `/ads.txt`. Development stays ad-free unless explicitly configured. The site tag supports review; serving ads also requires approval and an enabled placement. Keep Auto ads off to retain the placements described here.
+
+- **Home pages:** `NEXT_PUBLIC_ADSENSE_HOME_SLOT` enables one responsive display unit below the Words and Phrases home content, in a reserved, labelled space.
+- **Room lobby:** after H5 Games Ads approval, `NEXT_PUBLIC_ADSENSE_H5=1` enables Google's closable interstitial for an unready player, at most once per room per browser session. Ready and Play with bot skip any unrequested lobby ad before contacting the server. Slow initialization is skipped after five seconds; an already submitted placement keeps both controls locked until `adBreakDone`. Rematches do not show a lobby ad. If Google's initialized API never completes a placement, reload the page to discard it; the session guard skips it on return.
+- **Privacy and consent:** `/privacy` describes guest and game data, retention, browser storage and Google advertising, with contact at [siddukumar321@gmail.com](mailto:siddukumar321@gmail.com). Its Privacy and cookie settings button invokes Google's European consent control; visitors in supported US states use Google's Do Not Sell or Share My Personal Information link. European and US state messages were verified as published during the October 5 review; verify live display and reopening before enabling ads.
+
+Public How to play, About, FAQ and Privacy pages are linked from every footer. `/robots.txt` and `/sitemap.xml` expose the public pages to crawlers; room pages remain `noindex` and disallowed in `robots.txt`. The licensed SCOWL replacement and its provenance are described under [Words vocabulary](#words-vocabulary).
+
+| Variable                        | Purpose                                                                                                        |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_ADSENSE_CLIENT`    | Optional publisher override; `off` disables the integration. Production defaults to LetterLane's publisher ID. |
+| `NEXT_PUBLIC_ADSENSE_HOME_SLOT` | Numeric display-unit slot ID; empty means no home display unit.                                                |
+| `NEXT_PUBLIC_ADSENSE_H5`        | Set to `1` only after H5 Games Ads approval; otherwise leave empty.                                            |
+| `NEXT_PUBLIC_ADSENSE_TEST`      | Set to `1` for development test ads only; leave unset in production.                                           |
+| `SITE_URL`                      | Canonical HTTPS origin used by the crawler files.                                                              |
+
+Public ad values are inlined at build time, so rebuild after changing them. No additional database migration is required for ads. At the October 5 account review, `ads.txt` was Authorized and site approval was still Getting ready; these are review observations, not guarantees of current approval. Vendor research, setup, CSP details and testing are in [docs/advertising.md](docs/advertising.md).
 
 ## Words difficulty
 
